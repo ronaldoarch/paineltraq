@@ -67,6 +67,30 @@ Cadastre URLs públicas **HTTPS** do Coolify, por exemplo:
 
 ## Problemas comuns no Coolify
 
+### **Gateway Timeout — qual o problema real?**
+
+O texto **“Gateway Timeout”** no browser **não vem do Express**: vem do **proxy à frente** (no Coolify é quase sempre o **Traefik**, ou o **Nginx** do teu `docker-compose` se o domínio apontar para ele). Significa: **o proxy deixou de esperar pela resposta do contentor** (tempo esgotado) **ou** **nunca recebeu bytes a tempo** do *upstream* certo.
+
+**Ordem típica das causas:**
+
+| Ordem | Causa | Como reconhecer |
+|--------|--------|-------------------|
+| 1 | **Traefik: read timeout ~60s** (pedido lento, ex. `/api/stats` + BD pesada) | Erro após ~1 min; logs do app mostram o pedido a terminar depois ou nem aparecer `GET /`. |
+| 2 | **Domínio no Coolify a apontar para a porta errada** (`:80` nginx vs `:3000`/`:3001` app) ou **rede isolada** | `GET /api/health/live` **dentro** do contentor `app` funciona; pelo URL público **timeout** ou 502. |
+| 3 | **Dois proxies** (Traefik → Nginx → app) com **timeout curto** num deles | Menos comum; vê `nginx` access/error logs. |
+
+**Diagnóstico rápido (3 testes):**
+
+1. **No teu PC:**  
+   `curl -sS -m 15 "https://TEU-DOMINIO/api/ping"`  
+   Deve devolver JSON `{"ok":true,...}` **em milissegundos**.  
+   - Se **também der timeout** → problema **100% proxy/rede/porta/domínio no Coolify**, não a lógica da app nem a BD.
+2. **Se `/api/ping` OK mas `https://TEU-DOMINIO/` dá timeout** → algo estranho no `GET /` (menos provável) ou **timeout só em rotas pesadas**; sobe timeout do Traefik (secção abaixo) e usa `STATS_CACHE_TTL_MS` na app.
+3. **Dentro do VPS:**  
+   `docker compose exec app wget -qO- --timeout=5 http://127.0.0.1:3001/api/ping`  
+   (troca **3001** por **3000** se o `PORT` do contentor for 3000.)  
+   Se isto for **200** e o `curl` público falhar → o **Traefik não está a encostar** no contentor/porta certos.
+
 ### **504 ao fim de ~60s (Traefik no Coolify)**
 
 O proxy **Traefik** do Coolify usa, por defeito, **read timeout ~60s**. Pedidos ao Node que demorem mais (ex.: `/api/stats` com BD lenta) são cortados com **504**, mesmo com a app saudável.

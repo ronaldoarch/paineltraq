@@ -100,6 +100,23 @@ router.get('/auth/me', authMiddleware, (req, res) => {
 });
 
 // ============================================
+// DIAGNÓSTICO (sem BD, sem JWT) — ver COOLIFY.md se vês Gateway Timeout
+// ============================================
+
+/**
+ * GET /api/ping — resposta imediata; se isto falhar atrás do domínio, o problema é proxy/rede/porta, não a BD.
+ */
+router.get('/ping', (_req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.status(200).json({
+    ok: true,
+    service: 'bearbet-tracker',
+    uptime: process.uptime(),
+    t: new Date().toISOString(),
+  });
+});
+
+// ============================================
 // DASHBOARD STATS
 // ============================================
 
