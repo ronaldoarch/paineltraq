@@ -41,21 +41,11 @@ services:
       STATS_CACHE_TTL_MS: ${STATS_CACHE_TTL_MS:-30000}
       # Limite máximo de duração de uma query no banco (evita travamentos que causam 504)
       DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-25000}
+    # Porta gerenciada pelo Coolify via dashboard (Proxy → porta).
+    # O Coolify gera os labels Traefik automaticamente — não definir labels manuais aqui.
     expose:
       - "3000"
-    labels:
-      - "traefik.enable=true"
-      # COOLIFY_FQDN é injetado pelo Coolify: ex. fn1dcddwgipdauelkbfxefdc.agenciamidas.com
-      - "traefik.http.routers.bearbet-app.rule=Host(`${COOLIFY_FQDN}`)"
-      - "traefik.http.routers.bearbet-app.entrypoints=https"
-      - "traefik.http.routers.bearbet-app.tls=true"
-      - "traefik.http.routers.bearbet-app.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.bearbet-app.service=bearbet-app"
-      - "traefik.http.routers.bearbet-app.priority=100"
-      # Traefik usa o IP do container na rede coolify + esta porta para rotear
-      - "traefik.http.services.bearbet-app.loadbalancer.server.port=3000"
     networks:
-      - coolify
       - app-internal
     depends_on:
       postgres:
@@ -119,9 +109,7 @@ volumes:
   redis_data:
 
 networks:
-  # Rede do proxy do Coolify/Traefik — deve existir (criada pelo Coolify).
-  coolify:
-    external: true
   # Rede interna: app ↔ postgres ↔ redis, sem exposição ao proxy.
+  # O Coolify adiciona a rede "coolify" automaticamente a todos os containers.
   app-internal:
     driver: bridge
