@@ -75,14 +75,16 @@ services:
       POSTGRES_USER: ${DB_USER:-bearbet}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_data_v2:/var/lib/postgresql/data
+      - postgres_data_v3:/var/lib/postgresql/data
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      # Testa autenticação real (não só TCP) — garante que app só inicia quando o banco aceita conexões autenticadas
+      test: ["CMD-SHELL", "PGPASSWORD=$$POSTGRES_PASSWORD psql -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'SELECT 1' -q --no-psqlrc > /dev/null 2>&1"]
       interval: 5s
       timeout: 5s
       retries: 12
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
@@ -99,7 +101,7 @@ services:
       retries: 5
 
 volumes:
-  postgres_data_v2:
+  postgres_data_v3:
   redis_data:
 
 networks:
