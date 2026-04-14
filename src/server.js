@@ -51,7 +51,8 @@ app.use(morgan('combined', {
   stream: {
     write: (message) => logger.info(message.trim()),
   },
-  skip: (req) => req.url === '/api/health', // Não logar health checks
+  skip: (req) =>
+    req.url === '/api/health' || req.url.startsWith('/api/health/live'), // Não logar health checks
 }));
 
 // Rate limiting para webhooks (proteção contra flood)

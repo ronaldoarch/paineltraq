@@ -28,8 +28,8 @@ Este projeto está preparado para o [Coolify](https://coolify.io): **Dockerfile*
 
 ### Health check
 
-- Caminho: **`/api/health`** (público, testa PostgreSQL).
-- Opcional: configure o health check HTTP do Coolify para essa URL na porta interna do container (`PORT`, normalmente **3000** neste compose).
+- Caminho: **`/api/health`** (público, testa PostgreSQL) ou **`/api/health/live`** (só confirma que o Node responde — útil para probes durante migrações).
+- Opcional: configure o health check HTTP do Coolify para **`/api/health/live`** na porta interna do container (`PORT`, normalmente **3000** neste compose).
 
 ## Opção B — Só Dockerfile + bancos gerenciados no Coolify
 
@@ -66,6 +66,14 @@ Cadastre URLs públicas **HTTPS** do Coolify, por exemplo:
 - `https://track.seudominio.com/webhook/fluxlab`
 
 ## Problemas comuns no Coolify
+
+### **504 Gateway Timeout** — checklist rápido
+
+1. **Qual compose está no Coolify?** `coolify-compose.yml` → domínio no serviço **`app`** com **`https://…:3000`** (porta só para o proxy). `docker-compose.yml` → ou domínio no **`nginx`** com **`:80`**, ou no **`app`** com **`:3001`**. Misturar (ex.: `:3000` com app na 3001) gera **504**.
+2. **Só um domínio ativo** para esse host: apague rotas antigas duplicadas no mesmo projeto.
+3. **Logs do Traefik** (`coolify-proxy`): se aparecer `unable to find the IP address for the container`, faça **Redeploy** da stack e, se persistir, **Restart do proxy**. No servidor Traefik, a opção `--providers.docker.network=…` deve apontar para a **mesma rede** onde o contentor do app está (ver [docs Traefik/Coolify](https://coolify.io/docs/knowledge-base/proxy/traefik)).
+4. **Dentro do VPS:** `docker compose exec app node -e "require('http').get('http://127.0.0.1:3001/api/health/live',r=>r.on('end',()=>process.exit(r.statusCode===200?0:1)))"` (troque **3001** por **3000** se usa `coolify-compose.yml`). Se isto falhar, o problema é o **app**, não o Traefik.
+5. **“Predefined Network” / rede partilhada** no Coolify: se estiver ativo sem necessidade, o DNS interno (`postgres`, `redis`) pode falhar — o app reinicia ou não sobe → **504**.
 
 ### **504 Gateway Timeout** / Traefik na porta errada
 

@@ -331,6 +331,14 @@ router.get('/webhook-logs/:id', authMiddleware, async (req, res) => {
 // ============================================
 
 /**
+ * GET /api/health/live
+ * Liveness sem consultar BD — para Docker/Coolify/Traefik durante startup ou probes rápidos.
+ */
+router.get('/health/live', (req, res) => {
+  res.status(200).json({ status: 'live', timestamp: new Date().toISOString() });
+});
+
+/**
  * GET /api/health
  */
 router.get('/health', async (req, res) => {
