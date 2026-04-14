@@ -44,6 +44,11 @@ services:
       SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
     expose:
       - "3000"
+    # app precisa estar na rede 'coolify' para o Traefik do Coolify conseguir rotear.
+    # postgres e redis ficam só na rede interna — sem exposição ao proxy.
+    networks:
+      - coolify
+      - app-internal
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,6 +79,8 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_data_v5:/var/lib/postgresql/data
+    networks:
+      - app-internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bearbet} -d ${DB_NAME:-bearbet_tracker} -h 127.0.0.1"]
       interval: 5s
@@ -92,7 +99,18 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app-internal
 
 volumes:
   postgres_data_v5:
   redis_data:
+
+networks:
+  # Rede do Traefik do Coolify — deve existir antes do deploy (criada pelo Coolify).
+  # O app precisa estar aqui para o proxy rotear o tráfego HTTPS.
+  coolify:
+    external: true
+  # Rede interna: app ↔ postgres ↔ redis, sem exposição ao Traefik.
+  app-internal:
+    driver: bridge
