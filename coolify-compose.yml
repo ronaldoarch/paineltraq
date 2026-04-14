@@ -27,7 +27,8 @@ services:
       META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
       META_API_VERSION: ${META_API_VERSION:-v19.0}
       META_TEST_EVENT_CODE: ${META_TEST_EVENT_CODE:-}
-      BASE_URL: ${BASE_URL:-https://localhost}
+      # COOLIFY_FQDN é injetado pelo Coolify — usar como BASE_URL se não definido
+      BASE_URL: ${BASE_URL:-https://${COOLIFY_FQDN}}
       DEBUG_MODE: ${DEBUG_MODE:-false}
       RUN_SEED: ${RUN_SEED:-false}
       HTTP_KEEPALIVE_TIMEOUT_MS: ${HTTP_KEEPALIVE_TIMEOUT_MS:-190000}
@@ -40,9 +41,6 @@ services:
       STATS_CACHE_TTL_MS: ${STATS_CACHE_TTL_MS:-30000}
       # Limite máximo de duração de uma query no banco (evita travamentos que causam 504)
       DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-25000}
-      # Coolify/Traefik: rota pública → porta 3000 do container (app não ouve em 80).
-      SERVICE_URL_APP_3000: "${SERVICE_URL_APP_3000:-}"
-      SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
     expose:
       - "3000"
     # Traefik v3 + Coolify (exposedByDefault=false, providers.docker.network=coolify):
@@ -52,7 +50,9 @@ services:
     # - container DEVE estar na rede coolify → providers.docker.network=coolify usa esse IP
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.bearbet-app.rule=Host(`${SERVICE_FQDN_APP_3000}`)"
+      # COOLIFY_FQDN é injetado pelo Coolify no ambiente do docker compose (ex: fn1dcddwgipdauelkbfxefdc.agenciamidas.com)
+      # SERVICE_FQDN_APP_3000 NÃO é injetado nesta versão do Coolify — usar COOLIFY_FQDN
+      - "traefik.http.routers.bearbet-app.rule=Host(`${COOLIFY_FQDN}`)"
       - "traefik.http.routers.bearbet-app.entrypoints=https"
       - "traefik.http.routers.bearbet-app.tls=true"
       - "traefik.http.routers.bearbet-app.tls.certresolver=letsencrypt"
