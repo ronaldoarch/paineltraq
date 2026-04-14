@@ -72,7 +72,15 @@ Cadastre URLs públicas **HTTPS** do Coolify, por exemplo:
 Se o app ouve em **3001** (stack com `docker-compose.yml`) ou **3000** (`coolify-compose.yml`), o Traefik **não** pode assumir a porta **80** do container.
 
 1. **No compose do repositório** já estão as variáveis mágicas `SERVICE_URL_APP_3001` / `SERVICE_FQDN_APP_3001` (stack com Nginx) e `SERVICE_URL_APP_3000` (`coolify-compose.yml`), para o Coolify gerar o proxy para a porta certa — ver [Docker Compose no Coolify](https://coolify.io/docs/knowledge-base/docker/compose#domains) e [variáveis mágicas](https://coolify.io/docs/knowledge-base/environment-variables#magic-environment-variables-docker-compose).
-2. **Alternativa na UI:** no domínio do serviço `app`, usar `https://seu-fqdn:3001` (a `:3001` indica ao Coolify **só** a porta interna; o site público continua em HTTPS normal). Idem **`:80`** para o **nginx**, se necessário.
+2. **Na UI do Coolify (recomendado):** no campo **Domínios** do serviço **`app`**, use exatamente `https://pa7cxfhy5j8tpcvbijlbkmzk.agenciamidas.com:3001` (troque pelo teu FQDN). O **`:3001` não aparece no URL público** — só diz ao proxy para falar com o container na porta **3001**. Idem para **nginx** com **`:80`**: `https://…teu-nginx…:80`.
+3. **Conflito de variáveis:** se nas variáveis de ambiente do recurso existir **`SERVICE_URL_APP`** (sem `_3001`) definido manualmente **sem** porta, o Coolify pode gerar um router extra para a porta errada. Remove duplicados manuais e deixa o compose + mágicas gerirem, ou alinha tudo com a doc acima.
+
+#### Ainda 504 depois disso?
+
+1. **Logs do `app`:** com o site aberto no browser, vê se aparecem linhas `GET /` ou `GET /api/health` com **IP que não seja** `127.0.0.1`. Se **só** health interno aparece, o Traefik **não está a encostar** no Node (rede/porta/domínio no Coolify).
+2. **Logs do `nginx`:** erros `upstream timed out` / `Connection refused` a `app:3001` apontam rede ou app em baixo.
+3. **Simplificar:** no Coolify, muda o ficheiro de compose para **`coolify-compose.yml`** (sem Nginx/Certbot no stack), um domínio só no **`app`** e porta **3000** — o SSL fica só no Traefik; elimina um salto e muitos 504 “fantasma”.
+4. **No servidor (SSH):** `docker compose exec app wget -qO- --timeout=5 http://127.0.0.1:3001/api/health` deve devolver JSON; se sim, o problema é **só** entre Traefik e o stack. Para testar o Nginx por dentro: `docker compose exec nginx wget -qO- --timeout=5 http://127.0.0.1:80/api/health`.
 
 ### `address already in use` (portas **80**, **8080**, **3001**, etc.)
 

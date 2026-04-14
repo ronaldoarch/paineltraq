@@ -96,9 +96,10 @@ services:
     restart: always
     # Sem "ports" no host: Coolify/Traefik encosta na rede do projeto (80/8080 do host costumam estar ocupados).
     # Na VPS com acesso direto às portas: docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d
+    # Só 80: o TLS público fica no Traefik (Coolify). O nginx.conf não abre 443 até ter certs;
+    # expor 443 sem listener pode fazer proxies assumirem HTTPS até ao container → timeouts.
     expose:
       - "80"
-      - "443"
     volumes:
       # Certificados e ACME (nginx.conf já está na imagem — não montar arquivo no host)
       - ./nginx/ssl:/etc/nginx/ssl:ro
