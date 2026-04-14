@@ -44,11 +44,6 @@ services:
       SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
     expose:
       - "3000"
-    # O Traefik do Coolify roda na rede externa "coolify" — o app precisa estar
-    # nessa rede para receber tráfego. postgres e redis ficam só na rede interna.
-    networks:
-      - coolify
-      - internal
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,14 +69,11 @@ services:
       POSTGRES_DB: ${DB_NAME:-bearbet_tracker}
       POSTGRES_USER: ${DB_USER:-bearbet}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      # Aceita conexões da rede interna Docker sem verificar senha.
-      # Seguro porque postgres não está exposto fora da rede 'internal'.
-      # Elimina o problema de substituição de variável ${DB_PASSWORD} no Coolify.
+      # Aceita conexões sem verificar senha — resolve problema de substituição de
+      # variável no Coolify. Seguro: postgres não tem porta exposta para fora.
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - postgres_data_v4:/var/lib/postgresql/data
-    networks:
-      - internal
+      - postgres_data_v5:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bearbet} -d ${DB_NAME:-bearbet_tracker} -h 127.0.0.1"]
       interval: 5s
@@ -95,8 +87,6 @@ services:
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
-    networks:
-      - internal
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -104,13 +94,5 @@ services:
       retries: 5
 
 volumes:
-  postgres_data_v4:
+  postgres_data_v5:
   redis_data:
-
-networks:
-  # Rede do Traefik do Coolify — deve existir antes do deploy (criada pelo Coolify).
-  coolify:
-    external: true
-  # Rede interna: apenas app ↔ postgres ↔ redis, sem exposição ao proxy.
-  internal:
-    driver: bridge
