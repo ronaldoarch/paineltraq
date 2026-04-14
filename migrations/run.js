@@ -139,6 +139,15 @@ const migrations = [
   )`,
 
   // =============================================
+  // ÍNDICES EXTRAS: performance das queries de stats
+  // Evitam full table scan nas consultas do /api/stats, reduzindo risco de 504
+  // =============================================
+  `CREATE INDEX IF NOT EXISTS idx_events_event_name ON events(event_name)`,
+  `CREATE INDEX IF NOT EXISTS idx_events_created_at_event_name ON events(created_at, event_name)`,
+  `CREATE INDEX IF NOT EXISTS idx_events_created_at_status ON events(created_at, status)`,
+  `CREATE INDEX IF NOT EXISTS idx_webhook_logs_created_at_source ON webhook_logs(created_at, source)`,
+
+  // =============================================
   // VIEW: dashboard_stats
   // View materializada para performance do dashboard
   // =============================================
