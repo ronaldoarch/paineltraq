@@ -32,8 +32,10 @@ services:
       # Coolify/Traefik: rota pública → porta 3000 do container (app não ouve em 80).
       SERVICE_URL_APP_3000: "${SERVICE_URL_APP_3000:-}"
       SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
-    ports:
-      - "3000:3000"
+    # Sem "ports" no host: no Coolify o Traefik fala com o container só pela rede Docker.
+    # Publicar 3000:3000 no host costuma ser desnecessário e pode conflitar com outras stacks.
+    expose:
+      - "3000"
     depends_on:
       postgres:
         condition: service_healthy

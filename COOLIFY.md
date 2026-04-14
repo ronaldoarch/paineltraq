@@ -22,7 +22,7 @@ Este projeto está preparado para o [Coolify](https://coolify.io): **Dockerfile*
 | `DB_NAME` | Não | Padrão `bearbet_tracker`. |
 | `DB_USER` | Não | Padrão `bearbet`. |
 
-4. **Porta do serviço `app`:** o compose expõe **3000** e define `PORT=3000`. No Coolify, marque a porta publicada **3000** (ou ajuste compose e `PORT` de forma consistente).
+4. **Porta do serviço `app`:** o `coolify-compose.yml` usa **`expose: "3000"`** (sem `ports` no host) e `PORT=3000`. No Coolify, no domínio do `app`, use **`https://teu-fqdn:3000`** na configuração (a porta é só interna ao proxy; no browser abres **sem** `:3000`).
 5. **Domínio:** associe o FQDN ao serviço `app`; o Coolify termina o SSL (Let’s Encrypt).
 6. Faça o deploy. No primeiro deploy, use `RUN_SEED=true`, acesse o painel, **troque a senha do admin** e, se necessário, ajuste Meta nas configurações.
 
@@ -79,8 +79,9 @@ Se o app ouve em **3001** (stack com `docker-compose.yml`) ou **3000** (`coolify
 
 1. **Logs do `app`:** com o site aberto no browser, vê se aparecem linhas `GET /` ou `GET /api/health` com **IP que não seja** `127.0.0.1`. Se **só** health interno aparece, o Traefik **não está a encostar** no Node (rede/porta/domínio no Coolify).
 2. **Logs do `nginx`:** erros `upstream timed out` / `Connection refused` a `app:3001` apontam rede ou app em baixo.
-3. **Simplificar:** no Coolify, muda o ficheiro de compose para **`coolify-compose.yml`** (sem Nginx/Certbot no stack), um domínio só no **`app`** e porta **3000** — o SSL fica só no Traefik; elimina um salto e muitos 504 “fantasma”.
-4. **No servidor (SSH):** `docker compose exec app wget -qO- --timeout=5 http://127.0.0.1:3001/api/health` deve devolver JSON; se sim, o problema é **só** entre Traefik e o stack. Para testar o Nginx por dentro: `docker compose exec nginx wget -qO- --timeout=5 http://127.0.0.1:80/api/health`.
+3. **Simplificar (recomendado se o 504 persistir):** cria um **novo** recurso Docker Compose (ou edita o existente) com ficheiro **`coolify-compose.yml`**, **sem** serviços `nginx` nem `certbot`. Um **único** domínio no serviço **`app`**, na UI: `https://teu-fqdn:3000`. Remove domínios antigos duplicados do mesmo projeto que apontem para o mesmo host. Faz **Redeploy** completo. O SSL fica só no Traefik — é o arranjo que o Coolify documenta para apps que não ouvem na 80.
+4. **DNS e firewall:** o `A`/`AAAA` do subdomínio tem de apontar para o **IP do servidor onde o Coolify corre**; as portas **80** e **443** têm de estar abertas até ao host (não só dentro do Docker).
+5. **No servidor (SSH):** com stack `docker-compose.yml`, `docker compose exec app wget -qO- --timeout=5 http://127.0.0.1:3001/api/health` deve devolver JSON. Com **`coolify-compose.yml`**, usa a porta **3000** no URL. Se isto funcionar mas o browser continuar com 504, o problema é **só** Traefik/rede até ao contentor. Para Nginx: `docker compose exec nginx wget -qO- --timeout=5 http://127.0.0.1:80/api/health`.
 
 ### `address already in use` (portas **80**, **8080**, **3001**, etc.)
 
