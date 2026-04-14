@@ -173,10 +173,19 @@ async function start() {
       logger.info(`[Server] 🔗 Webhook FluxLab: http://localhost:${PORT}/webhook/fluxlab`);
       logger.info(`[Server] 💚 Health Check: http://localhost:${PORT}/api/health`);
     });
-    const keepAliveMs = Number(process.env.HTTP_KEEPALIVE_TIMEOUT_MS || 65000);
-    const headersMs = Number(process.env.HTTP_HEADERS_TIMEOUT_MS || 66000);
+    // Acima do read_timeout típico do Traefik/Nginx (60–120s) para evitar 502/504 em /api/stats ou webhooks lentos
+    const keepAliveMs = Number(process.env.HTTP_KEEPALIVE_TIMEOUT_MS || 190000);
+    const headersMs = Number(process.env.HTTP_HEADERS_TIMEOUT_MS || 195000);
     server.keepAliveTimeout = keepAliveMs;
     server.headersTimeout = headersMs;
+    const socketMs = Number(process.env.HTTP_SERVER_SOCKET_TIMEOUT_MS || 240000);
+    if (Number.isFinite(socketMs) && socketMs > 0) {
+      server.timeout = socketMs;
+    }
+    const reqTimeoutMs = Number(process.env.HTTP_REQUEST_TIMEOUT_MS || 180000);
+    if ('requestTimeout' in server && Number.isFinite(reqTimeoutMs) && reqTimeoutMs > 0) {
+      server.requestTimeout = reqTimeoutMs;
+    }
   } catch (error) {
     logger.error('[Server] ❌ Falha ao iniciar', { error: error.message });
     process.exit(1);

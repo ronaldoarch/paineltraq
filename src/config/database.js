@@ -8,7 +8,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD || '',
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS || '20000', 10),
 });
 
 pool.on('error', (err) => {

@@ -75,6 +75,19 @@ Cadastre URLs públicas **HTTPS** do Coolify, por exemplo:
 4. **Dentro do VPS:** `docker compose exec app node -e "require('http').get('http://127.0.0.1:3001/api/health/live',r=>r.on('end',()=>process.exit(r.statusCode===200?0:1)))"` (troque **3001** por **3000** se usa `coolify-compose.yml`). Se isto falhar, o problema é o **app**, não o Traefik.
 5. **“Predefined Network” / rede partilhada** no Coolify: se estiver ativo sem necessidade, o DNS interno (`postgres`, `redis`) pode falhar — o app reinicia ou não sobe → **504**.
 
+### **504 por resposta lenta do backend** (Traefik)
+
+O Traefik corta o pedido se o contentor demorar demais a **responder por completo** (tempo de leitura do upstream). O stack já aumenta timeouts no **Node** (`HTTP_*` no compose) e no **Nginx** (`proxy_read_timeout` 300s) quando usas `docker-compose.yml` com Nginx.
+
+**Só Coolify (sem Nginx no stack):** no painel do Traefik / labels do serviço, aumenta o *responding timeout* do serviço que aponta para o `app`, por exemplo (ajusta o nome do serviço ao que o Coolify gerou):
+
+```text
+traefik.http.services.<nome-do-servico>.loadbalancer.transport.respondingTimeouts.readTimeout=300s
+traefik.http.services.<nome-do-servico>.loadbalancer.transport.respondingTimeouts.writeTimeout=300s
+```
+
+Ou define variáveis no recurso: `HTTP_KEEPALIVE_TIMEOUT_MS`, `HTTP_HEADERS_TIMEOUT_MS`, `HTTP_REQUEST_TIMEOUT_MS` (ver `docker-compose.yml` / `coolify-compose.yml`).
+
 ### **504 Gateway Timeout** / Traefik na porta errada
 
 Se o app ouve em **3001** (stack com `docker-compose.yml`) ou **3000** (`coolify-compose.yml`), o Traefik **não** pode assumir a porta **80** do container.

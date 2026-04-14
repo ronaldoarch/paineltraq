@@ -437,10 +437,10 @@ router.get('/health/live', (req, res) => {
  */
 router.get('/health', async (req, res) => {
   try {
-    // Testar conexão com banco
-    await query('SELECT 1');
-
-    const metaConfig = await metaService.getConfig();
+    const [, metaConfig] = await Promise.all([
+      query('SELECT 1'),
+      metaService.getConfig().catch(() => ({})),
+    ]);
 
     res.json({
       status: 'healthy',

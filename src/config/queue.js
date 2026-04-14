@@ -3,7 +3,15 @@ const logger = require('./logger');
 
 const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  ...(process.env.REDIS_PASSWORD ? { password: process.env.REDIS_PASSWORD } : {}),
+  connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT_MS || '12000', 10),
+  // Falha rápido se Redis estiver em baixo (evita webhook preso até o proxy dar 504)
+  enableOfflineQueue: false,
+  maxRetriesPerRequest: parseInt(process.env.REDIS_MAX_RETRIES_PER_REQUEST || '4', 10),
+  retryStrategy(times) {
+    return Math.min(times * 150, 5000);
+  },
 };
 
 /**

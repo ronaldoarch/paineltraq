@@ -36,6 +36,13 @@ services:
       DEBUG_MODE: ${DEBUG_MODE:-false}
       RUN_SEED: ${RUN_SEED:-false}
       RESET_ADMIN_PASSWORD: ${RESET_ADMIN_PASSWORD:-false}
+      # Timeouts HTTP (Node) — acima do proxy para reduzir 502/504
+      HTTP_KEEPALIVE_TIMEOUT_MS: ${HTTP_KEEPALIVE_TIMEOUT_MS:-190000}
+      HTTP_HEADERS_TIMEOUT_MS: ${HTTP_HEADERS_TIMEOUT_MS:-195000}
+      HTTP_SERVER_SOCKET_TIMEOUT_MS: ${HTTP_SERVER_SOCKET_TIMEOUT_MS:-240000}
+      HTTP_REQUEST_TIMEOUT_MS: ${HTTP_REQUEST_TIMEOUT_MS:-180000}
+      DB_CONNECTION_TIMEOUT_MS: ${DB_CONNECTION_TIMEOUT_MS:-20000}
+      REDIS_CONNECT_TIMEOUT_MS: ${REDIS_CONNECT_TIMEOUT_MS:-12000}
     # Sem publicar 3001 no host: evita "address already in use" no Coolify e em
     # servidores com várias stacks. O Nginx acessa app:3001 na rede interna.
     # Acesso externo: no Coolify o proxy fala com app/nginx na rede Docker (sem porta no host).
