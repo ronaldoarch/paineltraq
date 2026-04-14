@@ -43,10 +43,11 @@ services:
       DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-25000}
     # Publica a porta no host para o Traefik acessar via host.docker.internal.
     # O Traefik tem extra_hosts: host.docker.internal:host-gateway, portanto
-    # consegue rotear para http://host.docker.internal:3000 sem depender de
+    # consegue rotear para http://host.docker.internal:13000 sem depender de
     # redes Docker compartilhadas (o Coolify pode remover a rede coolify silenciosamente).
+    # Porta 13000 no host evita colisão com outros serviços que usam 3000.
     ports:
-      - "3000:3000"
+      - "13000:3000"
     labels:
       - "traefik.enable=true"
       # COOLIFY_FQDN é injetado pelo Coolify: ex. fn1dcddwgipdauelkbfxefdc.agenciamidas.com
@@ -57,7 +58,7 @@ services:
       - "traefik.http.routers.bearbet-app.service=bearbet-app"
       - "traefik.http.routers.bearbet-app.priority=100"
       # URL explícita → Traefik ignora providers.docker.network e conecta via host
-      - "traefik.http.services.bearbet-app.loadbalancer.server.url=http://host.docker.internal:3000"
+      - "traefik.http.services.bearbet-app.loadbalancer.server.url=http://host.docker.internal:13000"
     networks:
       - app-internal
     depends_on:
