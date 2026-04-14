@@ -123,11 +123,14 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
   try {
     const payload = req.body;
     const eventType = payload.event || payload.type || '';
-
-    logger.info('[Cassino Webhook] Evento recebido', {
-      event: eventType,
-      userId: payload.data?.user_id || payload.data?.userId || 'N/A',
-    });
+    const requestId = payload.metadata?.requestId || payload.requestId;
+    const rawUid = payload.data?.user_id || payload.data?.userId;
+    const hasUserSignal = Boolean(
+      rawUid ||
+        payload.data?.email ||
+        payload.data?.phone ||
+        payload.data?.transactionId,
+    );
 
     if (!isCassinoRelevantEvent(eventType)) {
       logger.info('[Cassino Webhook] Evento ignorado', { event: eventType });
@@ -135,9 +138,16 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
       return res.status(200).json({ received: true, processed: false, reason: 'event_not_relevant' });
     }
 
-    // Teste manual do Meta System (sem utilizador real) — não criar user nem enviar ao Meta
-    const isTestPing = payload.data?.test === true || payload.metadata?.isTest === true;
+    // Ping de teste do Meta System (sem utilizador/transação real) — não enviar à CAPI
+    const isTestPing =
+      payload.data?.test === true ||
+      (payload.metadata?.isTest === true && !hasUserSignal);
     if (isTestPing) {
+      logger.info('[Cassino Webhook] Ignorado (webhook de teste Meta System)', {
+        event: eventType,
+        requestId: requestId || undefined,
+        hint: 'Com dados reais (email/userId/transactionId) o evento é processado mesmo com isTest.',
+      });
       await mark(req.webhookLogId, true, null);
       return res.status(200).json({
         received: true,
@@ -146,6 +156,13 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
         reason: 'meta_system_test_webhook',
       });
     }
+
+    logger.info('[Cassino Webhook] A processar', {
+      event: eventType,
+      requestId: requestId || undefined,
+      userId: rawUid || undefined,
+      hasEmail: Boolean(payload.data?.email),
+    });
 
     // Extrair dados (snake_case legado + camelCase Meta System; depósito inclui transactionId, amount, tracking.*)
     const data = payload.data || payload;
@@ -205,6 +222,12 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
     });
 
     await mark(req.webhookLogId, true, null);
+    logger.info('[Cassino Webhook] Processado', {
+      event: eventType,
+      requestId: requestId || undefined,
+      eventId: result.eventId,
+      duplicate: result.duplicate || false,
+    });
     return res.status(200).json({
       received: true,
       processed: true,
