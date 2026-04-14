@@ -9,6 +9,9 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS || '20000', 10),
+  // Impede que uma query travada bloqueie a conexão por tempo indefinido,
+  // o que causaria 504 no proxy. O default 25s está abaixo do timeout do Traefik.
+  statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT_MS || '25000', 10),
 });
 
 pool.on('error', (err) => {

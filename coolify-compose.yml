@@ -36,12 +36,20 @@ services:
       DB_CONNECTION_TIMEOUT_MS: ${DB_CONNECTION_TIMEOUT_MS:-20000}
       REDIS_CONNECT_TIMEOUT_MS: ${REDIS_CONNECT_TIMEOUT_MS:-12000}
       # Cache GET /api/stats (ms) — menos consultas pesadas → menos 504 no Traefik (~60s)
-      STATS_CACHE_TTL_MS: ${STATS_CACHE_TTL_MS:-8000}
+      STATS_CACHE_TTL_MS: ${STATS_CACHE_TTL_MS:-30000}
+      # Limite máximo de duração de uma query no banco (evita travamentos que causam 504)
+      DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-25000}
       # Coolify/Traefik: rota pública → porta 3000 do container (app não ouve em 80).
       SERVICE_URL_APP_3000: "${SERVICE_URL_APP_3000:-}"
       SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
     # Sem "ports" no host: no Coolify o Traefik fala com o container só pela rede Docker.
     # Publicar 3000:3000 no host costuma ser desnecessário e pode conflitar com outras stacks.
+    # Traefik só roteia para o container após o health check responder OK.
+    # Evita 504 durante o startup (migrations + conexão DB podem levar até 120s).
+    labels:
+      - "traefik.http.services.app.loadbalancer.healthcheck.path=/api/health/live"
+      - "traefik.http.services.app.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.app.loadbalancer.healthcheck.timeout=5s"
     expose:
       - "3000"
     depends_on:
