@@ -98,11 +98,9 @@ DB_PASSWORD=COLOQUE_UMA_SENHA_FORTE_AQUI
 JWT_SECRET=COLOQUE_OUTRA_SENHA_DIFERENTE_AQUI
 META_PIXEL_ID=SEU_PIXEL_ID_DO_FACEBOOK
 META_ACCESS_TOKEN=SEU_TOKEN_DA_CAPI
-NGINX_HTTP_PORT=80
-NGINX_HTTPS_PORT=443
 ```
 
-As duas últimas linhas expõem o Nginx nas portas **80** e **443** da VPS (padrão do `docker-compose` no Coolify é **8080**/**8443** para não conflitar com o proxy do Coolify).
+Se esta VPS for o **único** reverse proxy e você quiser Nginx nas portas **80** e **443** (em vez de **8080**/**8443**), edite no `docker-compose.yml` o serviço `nginx` e troque as linhas de `ports` para `80:80` e `443:443`.
 
 Para salvar e sair do nano:
 1. Aperte `Ctrl + X`
@@ -174,10 +172,12 @@ docker compose restart nginx
 
 ## ✅ PASSO 8 — Testar
 
-Abra no navegador (tráfego passa pelo **Nginx** na porta **80**):
+Abra no navegador (tráfego passa pelo **Nginx**; padrão do compose é **8080** no host):
 ```
-http://SEU_IP/api/health
+http://SEU_IP:8080/api/health
 ```
+
+Se você alterou o Nginx para **80:80**, use `http://SEU_IP/api/health`.
 
 Ou se já configurou domínio e SSL:
 ```

@@ -81,9 +81,9 @@ O Coolify grava dados em `/data/coolify/applications/.../`. Bind-mount de **arqu
 
 ### `Bind for 0.0.0.0:80 failed: port is already allocated`
 
-No servidor do Coolify a **porta 80** (e muitas vezes a **443**) já é do **Traefik/proxy** do próprio Coolify. O `docker-compose.yml` usa por padrão **`8080→80`** e **`8443→443`** no host (`NGINX_HTTP_PORT` / `NGINX_HTTPS_PORT`), para não disputar com o Coolify.
+No servidor do Coolify a **porta 80** já é do **Traefik**. O `docker-compose.yml` publica o Nginx em **`8080→80`** e **`8443→443`** no host (valores **fixos**, para o Coolify não sobrescrever com variáveis como `NGINX_HTTP_PORT=80` no `.env`).
 
-No painel do recurso, aponte o domínio / proxy HTTP para a porta publicada do Nginx (**8080** por padrão), a menos que você defina outra variável no ambiente.
+No recurso, configure o proxy/domínio do Coolify para a porta **8080** (HTTP interno do Nginx). Se no ambiente do Coolify existir `NGINX_HTTP_PORT` ou `PORT` forçando **80**, **remova** — não são usados pelo compose atual.
 
 ### Preferir sem Nginx no Coolify
 
