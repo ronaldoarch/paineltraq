@@ -8,13 +8,26 @@ const logger = require('../config/logger');
 // Logar todos os webhooks do cassino
 router.use(webhookLogger('cassino'));
 
+const CASSINO_SECRET_CACHE_TTL_MS = 30_000;
+let cassinoDbSecretCache = { value: '', loadedAt: 0 };
+
+async function resolveCassinoSecretFromDb() {
+  const now = Date.now();
+  if (now - cassinoDbSecretCache.loadedAt < CASSINO_SECRET_CACHE_TTL_MS) {
+    return cassinoDbSecretCache.value;
+  }
+  const db = String((await settingsService.get('webhook_secret_cassino')) || '').trim();
+  cassinoDbSecretCache = { value: db, loadedAt: now };
+  return db;
+}
+
 /**
  * Se WEBHOOK_SECRET_CASSINO (env) ou webhook_secret_cassino (BD) existir, exige header ou Bearer.
  */
 async function verifyCassinoWebhookSecret(req, res, next) {
   try {
     const envSecret = process.env.WEBHOOK_SECRET_CASSINO?.trim();
-    const dbSecret = String((await settingsService.get('webhook_secret_cassino')) || '').trim();
+    const dbSecret = envSecret ? '' : await resolveCassinoSecretFromDb();
     const secret = envSecret || dbSecret;
     if (!secret) return next();
 
@@ -139,5 +152,10 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
     });
   }
 });
+
+function invalidateCassinoWebhookSecretCache() {
+  cassinoDbSecretCache = { value: '', loadedAt: 0 };
+}
+router.invalidateCassinoWebhookSecretCache = invalidateCassinoWebhookSecretCache;
 
 module.exports = router;

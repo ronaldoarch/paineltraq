@@ -293,6 +293,14 @@ router.post('/settings/webhook-secrets/generate', authMiddleware, async (req, re
       secret,
       'Secret para validar webhooks do cassino (X-Webhook-Secret ou Authorization Bearer)',
     );
+    try {
+      const cassinoRouter = require('./webhookCassino');
+      if (cassinoRouter.invalidateCassinoWebhookSecretCache) {
+        cassinoRouter.invalidateCassinoWebhookSecretCache();
+      }
+    } catch (_) {
+      /* ignore */
+    }
     logger.info('[API] webhook_secret_cassino regenerado');
 
     res.json({

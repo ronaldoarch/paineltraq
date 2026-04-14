@@ -155,8 +155,8 @@ async function start() {
     await startWorker();
     logger.info('[Server] ✅ Worker da fila iniciado');
 
-    // Iniciar servidor
-    app.listen(PORT, '0.0.0.0', () => {
+    // Iniciar servidor (timeouts compatíveis com Traefik/Nginx — default Node ~5s causa 502/504 intermitentes)
+    const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`[Server] ✅ Bearbet Tracker rodando na porta ${PORT}`);
       logger.info(`[Server] 📊 Dashboard: http://localhost:${PORT}`);
       logger.info(`[Server] 🔗 Webhook XGate: http://localhost:${PORT}/webhook/xgate`);
@@ -164,6 +164,10 @@ async function start() {
       logger.info(`[Server] 🔗 Webhook FluxLab: http://localhost:${PORT}/webhook/fluxlab`);
       logger.info(`[Server] 💚 Health Check: http://localhost:${PORT}/api/health`);
     });
+    const keepAliveMs = Number(process.env.HTTP_KEEPALIVE_TIMEOUT_MS || 65000);
+    const headersMs = Number(process.env.HTTP_HEADERS_TIMEOUT_MS || 66000);
+    server.keepAliveTimeout = keepAliveMs;
+    server.headersTimeout = headersMs;
   } catch (error) {
     logger.error('[Server] ❌ Falha ao iniciar', { error: error.message });
     process.exit(1);

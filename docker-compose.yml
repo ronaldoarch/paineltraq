@@ -133,7 +133,8 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - certbot_data:/var/www/certbot:ro
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     environment:
       # Traefik → Nginx escuta HTTP na 80 dentro do container
       SERVICE_URL_NGINX_80: "${SERVICE_URL_NGINX_80:-}"
