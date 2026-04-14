@@ -11,6 +11,7 @@ services:
     env_file: .env
     environment:
       TRUST_PROXY: ${TRUST_PROXY:-true}
+      NODE_ENV: ${NODE_ENV:-production}
       # Fixa a porta: o Coolify costuma injetar PORT=3000; o Nginx e o expose usam 3001.
       PORT: "3001"
       # Coolify/Traefik: gera rota para a porta 3001 do container (evita 504 se o proxy assumir 80).
@@ -19,7 +20,22 @@ services:
       SERVICE_FQDN_APP_3001: "${SERVICE_FQDN_APP_3001:-}"
       # Obrigatório na rede Docker (Coolify às vezes injeta DB_HOST=localhost no .env)
       DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-bearbet_tracker}
+      DB_USER: ${DB_USER:-bearbet}
+      DB_PASSWORD: ${DB_PASSWORD:-TROQUE_POR_UMA_SENHA_FORTE_AQUI}
       REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      # Coolify só injeta no contentor o que aparece no compose — JWT_SECRET tem de estar aqui
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no Coolify ou no .env}
+      BASE_URL: ${BASE_URL:-https://localhost}
+      META_PIXEL_ID: ${META_PIXEL_ID:-}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      META_API_VERSION: ${META_API_VERSION:-v19.0}
+      META_TEST_EVENT_CODE: ${META_TEST_EVENT_CODE:-}
+      DEBUG_MODE: ${DEBUG_MODE:-false}
+      RUN_SEED: ${RUN_SEED:-false}
+      RESET_ADMIN_PASSWORD: ${RESET_ADMIN_PASSWORD:-false}
     # Sem publicar 3001 no host: evita "address already in use" no Coolify e em
     # servidores com várias stacks. O Nginx acessa app:3001 na rede interna.
     # Acesso externo: no Coolify o proxy fala com app/nginx na rede Docker (sem porta no host).

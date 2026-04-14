@@ -139,6 +139,13 @@ app.use((err, req, res, next) => {
 
 async function start() {
   try {
+    if (!process.env.JWT_SECRET?.trim()) {
+      logger.error(
+        '[Server] JWT_SECRET não definido ou vazio. Defina nas variáveis de ambiente (Coolify / .env).',
+      );
+      process.exit(1);
+    }
+
     // Testar conexão com banco
     const { pool } = require('./config/database');
     await pool.query('SELECT 1');
