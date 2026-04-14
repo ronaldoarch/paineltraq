@@ -41,26 +41,24 @@ services:
       STATS_CACHE_TTL_MS: ${STATS_CACHE_TTL_MS:-30000}
       # Limite máximo de duração de uma query no banco (evita travamentos que causam 504)
       DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-25000}
-    expose:
-      - "3000"
-    # Traefik v3 + Coolify (exposedByDefault=false, providers.docker.network=coolify):
-    # - traefik.enable=true  → obrigatório (Coolify pode não gerar automaticamente)
-    # - router/service com nome único → evita conflito com labels gerados pelo Coolify
-    # - porta 3000 explícita → sem esse label o Traefik tenta porta 80 por padrão
-    # - container DEVE estar na rede coolify → providers.docker.network=coolify usa esse IP
+    # Publica a porta no host para o Traefik acessar via host.docker.internal.
+    # O Traefik tem extra_hosts: host.docker.internal:host-gateway, portanto
+    # consegue rotear para http://host.docker.internal:3000 sem depender de
+    # redes Docker compartilhadas (o Coolify pode remover a rede coolify silenciosamente).
+    ports:
+      - "3000:3000"
     labels:
       - "traefik.enable=true"
-      # COOLIFY_FQDN é injetado pelo Coolify no ambiente do docker compose (ex: fn1dcddwgipdauelkbfxefdc.agenciamidas.com)
-      # SERVICE_FQDN_APP_3000 NÃO é injetado nesta versão do Coolify — usar COOLIFY_FQDN
+      # COOLIFY_FQDN é injetado pelo Coolify: ex. fn1dcddwgipdauelkbfxefdc.agenciamidas.com
       - "traefik.http.routers.bearbet-app.rule=Host(`${COOLIFY_FQDN}`)"
       - "traefik.http.routers.bearbet-app.entrypoints=https"
       - "traefik.http.routers.bearbet-app.tls=true"
       - "traefik.http.routers.bearbet-app.tls.certresolver=letsencrypt"
       - "traefik.http.routers.bearbet-app.service=bearbet-app"
       - "traefik.http.routers.bearbet-app.priority=100"
-      - "traefik.http.services.bearbet-app.loadbalancer.server.port=3000"
+      # URL explícita → Traefik ignora providers.docker.network e conecta via host
+      - "traefik.http.services.bearbet-app.loadbalancer.server.url=http://host.docker.internal:3000"
     networks:
-      - coolify
       - app-internal
     depends_on:
       postgres:
@@ -124,9 +122,6 @@ volumes:
   redis_data:
 
 networks:
-  # Rede do proxy do Coolify/Traefik — deve existir (criada pelo Coolify).
-  coolify:
-    external: true
   # Rede interna: app ↔ postgres ↔ redis, sem exposição ao proxy.
   app-internal:
     driver: bridge
