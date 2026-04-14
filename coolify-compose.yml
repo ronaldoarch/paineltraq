@@ -45,10 +45,20 @@ services:
       SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
     expose:
       - "3000"
-    # Quando o container está em múltiplas redes, o Traefik não sabe qual IP usar.
-    # traefik.docker.network=coolify instrui o Traefik a usar o IP da rede correta.
+    # Traefik v3 + Coolify (exposedByDefault=false, providers.docker.network=coolify):
+    # - traefik.enable=true  → obrigatório (Coolify pode não gerar automaticamente)
+    # - router/service com nome único → evita conflito com labels gerados pelo Coolify
+    # - porta 3000 explícita → sem esse label o Traefik tenta porta 80 por padrão
+    # - container DEVE estar na rede coolify → providers.docker.network=coolify usa esse IP
     labels:
-      - "traefik.docker.network=coolify"
+      - "traefik.enable=true"
+      - "traefik.http.routers.bearbet-app.rule=Host(`${SERVICE_FQDN_APP_3000}`)"
+      - "traefik.http.routers.bearbet-app.entrypoints=https"
+      - "traefik.http.routers.bearbet-app.tls=true"
+      - "traefik.http.routers.bearbet-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.bearbet-app.service=bearbet-app"
+      - "traefik.http.routers.bearbet-app.priority=100"
+      - "traefik.http.services.bearbet-app.loadbalancer.server.port=3000"
     networks:
       - coolify
       - app-internal
