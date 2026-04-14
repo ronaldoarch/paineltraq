@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { query } = require('../config/database');
 const { generateEventId, generateDeterministicEventId } = require('../utils/helpers');
 const userService = require('./userService');
@@ -39,6 +40,15 @@ function extractEventSourceUrlFromPayload(rawPayload) {
   return null;
 }
 
+/** Último recurso para dedupe: corpo distinto ⇒ ID distinto (evita colapsar vários depósitos no mesmo minuto). */
+function fingerprintWebhookPayload(payload) {
+  try {
+    return crypto.createHash('sha256').update(JSON.stringify(payload ?? {})).digest('hex').slice(0, 40);
+  } catch {
+    return `t_${Date.now()}`;
+  }
+}
+
 class EventService {
   /**
    * Mapeia eventos internos para nomes do Meta
@@ -67,7 +77,34 @@ class EventService {
     // FTD (First Time Deposit) - também mapeia para Purchase
     'ftd': 'Purchase',
     'first_deposit': 'Purchase',
+
+    // Variantes comuns de gateways / Meta System
+    deposit: 'Purchase',
+    'deposit.success': 'Purchase',
+    deposit_success: 'Purchase',
+    depositsuccess: 'Purchase',
+    'wallet.deposit.completed': 'Purchase',
+    'payment.pix.completed': 'Purchase',
+    pix_completed: 'Purchase',
+    'pix.completed': 'Purchase',
+    payment_confirmed: 'Purchase',
   };
+
+  /**
+   * Aceita o webhook do cassino se o tipo (exacto ou compacto) existir no EVENT_MAP.
+   */
+  isCassinoEventAccepted(eventType) {
+    const t = String(eventType || '').toLowerCase().trim();
+    if (!t) return false;
+    if (EventService.EVENT_MAP[t]) return true;
+    const compact = t.replace(/[^a-z0-9]/gi, '');
+    if (!compact) return false;
+    for (const k of Object.keys(EventService.EVENT_MAP)) {
+      const kc = k.toLowerCase().replace(/[^a-z0-9]/gi, '');
+      if (kc === compact) return true;
+    }
+    return false;
+  }
 
   /**
    * Processa um evento recebido de qualquer fonte
@@ -110,9 +147,35 @@ class EventService {
         pData.depositReference ||
         pData.deposit_reference ||
         pData.pixEndToEndId ||
+        pData.pix_end_to_end_id ||
         pData.onzTxid ||
-        Math.floor(Date.now() / 60000);
+        pData.paymentId ||
+        pData.payment_id ||
+        pData.orderId ||
+        pData.order_id ||
+        pData.depositId ||
+        pData.deposit_id ||
+        pData.invoice_id ||
+        pData.invoiceId ||
+        payload?.metadata?.requestId ||
+        payload?.requestId ||
+        fingerprintWebhookPayload(payload);
       const eventId = generateDeterministicEventId(source, eventType, user.id, String(dedupeKey));
+
+      let insertValue = value;
+      if (insertValue != null && typeof insertValue === 'object') {
+        insertValue = parseFloat(String(insertValue));
+      } else {
+        insertValue = Number(insertValue);
+      }
+      if (!Number.isFinite(insertValue)) insertValue = 0;
+
+      let insertCurrency = 'BRL';
+      if (currency != null && typeof currency === 'string') {
+        insertCurrency = currency.trim().slice(0, 10) || 'BRL';
+      } else if (currency != null && typeof currency === 'number') {
+        insertCurrency = String(currency).slice(0, 10);
+      }
 
       // 4. Verificar se evento já existe (deduplicação)
       const isDuplicate = await this.checkDuplicate(eventId);
@@ -134,7 +197,7 @@ class EventService {
         ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
         RETURNING *`,
         [
-          eventId, user.id, eventType, metaEventName, value, currency,
+          eventId, user.id, eventType, metaEventName, insertValue, insertCurrency,
           source, 'queued', JSON.stringify(payload), matchedBy,
           userData.ip_address, userData.user_agent
         ]
@@ -145,8 +208,8 @@ class EventService {
         eventId,
         eventType,
         metaEventName,
-        value,
-        currency,
+        value: insertValue,
+        currency: insertCurrency,
         userId: user.id,
       }, {
         jobId: eventId, // previne jobs duplicados
@@ -159,7 +222,7 @@ class EventService {
         metaEventName,
         userId: user.id,
         matchedBy,
-        value,
+        value: insertValue,
       });
 
       return {
@@ -196,7 +259,14 @@ class EventService {
    * Chamado pelo worker da fila
    */
   async processQueueJob(job) {
-    const { eventId, metaEventName, value, currency, userId } = job.data;
+    const { eventId, metaEventName, currency, userId } = job.data;
+    let value = job.data.value;
+    if (value != null && typeof value === 'object') {
+      value = parseFloat(String(value));
+    } else {
+      value = Number(value);
+    }
+    if (!Number.isFinite(value)) value = 0;
 
     logger.info('[EventService] Processando job da fila', {
       jobId: job.id,
@@ -252,14 +322,14 @@ class EventService {
           status = 'error',
           meta_response = $2
         WHERE event_id = $1`,
-        [eventId, JSON.stringify({ error: result.error, statusCode: result.statusCode })]
+        [eventId, JSON.stringify({ error: result.error, http_status: result.statusCode })]
       );
 
       // Se é um erro 4xx (exceto 429), não vale retry
       if (result.statusCode && result.statusCode >= 400 && result.statusCode < 500 && result.statusCode !== 429) {
         logger.error('[EventService] Erro permanente, cancelando retries', {
           eventId,
-          statusCode: result.statusCode,
+          http_status: result.statusCode,
           error: result.error,
         });
         return result; // Não lança erro = não faz retry

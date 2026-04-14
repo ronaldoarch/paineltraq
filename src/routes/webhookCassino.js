@@ -12,29 +12,6 @@ router.use(webhookLogger('cassino'));
 const CASSINO_SECRET_CACHE_TTL_MS = 30_000;
 let cassinoDbSecretCache = { value: '', loadedAt: 0 };
 
-/** Eventos Meta System / cassino aceites (match exacto; antes falhava em strings com pontos). */
-function isCassinoRelevantEvent(eventType) {
-  const t = String(eventType || '').toLowerCase().trim();
-  const allowed = new Set([
-    'user.register',
-    'payment.deposit.started',
-    'payment.deposit.completed',
-    'register',
-    'deposit_started',
-    'deposit_completed',
-  ]);
-  if (allowed.has(t)) return true;
-  const compact = t.replace(/[^a-z0-9]/gi, '');
-  const aliases = [
-    'userregister',
-    'paymentdepositstarted',
-    'paymentdepositcompleted',
-    'depositstarted',
-    'depositcompleted',
-  ];
-  return aliases.includes(compact);
-}
-
 async function resolveCassinoSecretFromDb() {
   const now = Date.now();
   if (now - cassinoDbSecretCache.loadedAt < CASSINO_SECRET_CACHE_TTL_MS) {
@@ -132,7 +109,7 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
         payload.data?.transactionId,
     );
 
-    if (!isCassinoRelevantEvent(eventType)) {
+    if (!eventService.isCassinoEventAccepted(eventType)) {
       logger.info('[Cassino Webhook] Evento ignorado', { event: eventType });
       await mark(req.webhookLogId, false, 'Ignorado: tipo de evento não mapeado para CAPI');
       return res.status(200).json({ received: true, processed: false, reason: 'event_not_relevant' });

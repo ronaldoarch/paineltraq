@@ -1336,7 +1336,7 @@ async function loadOverview() {
         .map((r) => `${r.source}: ${num(r.total)}`)
         .join(' · ');
       document.getElementById('statWebhookHttpSub').textContent =
-        `${num(t.total_events)} viraram linhas em Eventos (restante: teste Meta, tipo ignorado, duplicado ou erro antes de gravar).${bySrc ? ` Por fonte: ${bySrc}.` : ''}`;
+        `${num(t.total_events)} eventos na tabela Eventos (de ${num(wh.total)} pedidos HTTP). O restante costuma ser teste Meta, tipo não mapeado, duplicado ou erro antes de gravar.${bySrc ? ` Por fonte: ${bySrc}.` : ''}`;
     }
 
     // Recent events

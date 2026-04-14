@@ -12,6 +12,62 @@ function normalizeCurrency(currency) {
 }
 
 /** Resposta Graph / CAPI em texto útil para logs e coluna meta_response */
+/** Chaves permitidas na CAPI — a Meta devolve 400 se aparecerem campos extra (ex.: statusCode) em user_data/custom_data. */
+const ALLOWED_SERVER_EVENT_KEYS = new Set([
+  'event_name',
+  'event_time',
+  'event_id',
+  'event_source_url',
+  'action_source',
+  'user_data',
+  'custom_data',
+  'opt_out',
+]);
+
+const ALLOWED_USER_DATA_KEYS = new Set([
+  'em',
+  'ph',
+  'fn',
+  'ln',
+  'ge',
+  'db',
+  'ct',
+  'st',
+  'zp',
+  'country',
+  'external_id',
+  'client_ip_address',
+  'client_user_agent',
+  'fbc',
+  'fbp',
+  'subscription_id',
+  'lead_id',
+  'madid',
+  'anon_id',
+  'partner_id',
+  'dobd',
+  'dobm',
+  'doby',
+]);
+
+const ALLOWED_CUSTOM_DATA_KEYS = new Set([
+  'value',
+  'currency',
+  'content_name',
+  'content_category',
+  'content_ids',
+  'contents',
+  'content_type',
+  'order_id',
+  'predicted_ltv',
+  'num_items',
+  'status',
+  'search_string',
+  'item_number',
+  'delivery_category',
+  'shipping_contact',
+]);
+
 function formatGraphApiError(error) {
   const d = error.response?.data;
   if (!d) return error.message;
@@ -169,9 +225,11 @@ class MetaService {
     const commerceEvents = ['Purchase', 'InitiateCheckout'];
     const needsCurrency = commerceEvents.includes(event_name);
 
-    if (hasFiniteValue || currency || needsCurrency) {
+    // Valor 0 não entra em custom_data (evita lixo em CompleteRegistration); Purchase/Checkout mantêm moeda.
+    const includeValueKey = hasFiniteValue && numVal !== 0;
+    if (includeValueKey || currency || needsCurrency) {
       event.custom_data = {};
-      if (hasFiniteValue) event.custom_data.value = numVal;
+      if (includeValueKey) event.custom_data.value = numVal;
       if (needsCurrency || currency) {
         event.custom_data.currency = normalizeCurrency(currency);
       }
@@ -182,7 +240,42 @@ class MetaService {
       event.event_source_url = source_url;
     }
 
-    return event;
+    return this.sanitizeServerEventForCapI(event);
+  }
+
+  /**
+   * Remove chaves não documentadas na CAPI (evita 400 "Invalid parameter '…'").
+   */
+  sanitizeServerEventForCapI(ev) {
+    if (!ev || typeof ev !== 'object') return {};
+    const out = {};
+    for (const k of Object.keys(ev)) {
+      if (!ALLOWED_SERVER_EVENT_KEYS.has(k)) continue;
+      if (k === 'user_data' && ev.user_data && typeof ev.user_data === 'object') {
+        const ud = {};
+        for (const uk of Object.keys(ev.user_data)) {
+          if (!ALLOWED_USER_DATA_KEYS.has(uk)) continue;
+          const v = ev.user_data[uk];
+          if (v !== undefined && v !== null) ud[uk] = v;
+        }
+        out.user_data = ud;
+      } else if (k === 'custom_data' && ev.custom_data && typeof ev.custom_data === 'object') {
+        const cd = {};
+        for (const ck of Object.keys(ev.custom_data)) {
+          if (!ALLOWED_CUSTOM_DATA_KEYS.has(ck)) continue;
+          let v = ev.custom_data[ck];
+          if (ck === 'value' && typeof v !== 'number') {
+            const n = Number(v);
+            v = Number.isFinite(n) ? n : undefined;
+          }
+          if (v !== undefined && v !== null) cd[ck] = v;
+        }
+        if (Object.keys(cd).length > 0) out.custom_data = cd;
+      } else if (ev[k] !== undefined && ev[k] !== null) {
+        out[k] = ev[k];
+      }
+    }
+    return out;
   }
 
   /**
