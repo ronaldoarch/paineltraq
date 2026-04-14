@@ -83,6 +83,23 @@ Se o app ouve em **3001** (stack com `docker-compose.yml`) ou **3000** (`coolify
 4. **DNS e firewall:** o `A`/`AAAA` do subdomínio tem de apontar para o **IP do servidor onde o Coolify corre**; as portas **80** e **443** têm de estar abertas até ao host (não só dentro do Docker).
 5. **No servidor (SSH):** com stack `docker-compose.yml`, `docker compose exec app wget -qO- --timeout=5 http://127.0.0.1:3001/api/health` deve devolver JSON. Com **`coolify-compose.yml`**, usa a porta **3000** no URL. Se isto funcionar mas o browser continuar com 504, o problema é **só** Traefik/rede até ao contentor. Para Nginx: `docker compose exec nginx wget -qO- --timeout=5 http://127.0.0.1:80/api/health`.
 
+### Traefik: `unable to find the IP address for the container` / `the server is ignored`
+
+Mensagem típica nos logs do proxy (Traefik):
+
+`error="service \"https-0-…\" … unable to find the IP address for the container \"/UUID-…\": the server is ignored"` (`providerName=docker`).
+
+**Significado:** o Traefik tem **rotas (labels)** que apontam para um contentor que **já não existe**, **ainda não tem IP**, ou **não está na mesma rede Docker** que o Traefik consegue usar. Esse *backend* é ignorado → o browser vê **504 Gateway Timeout** ou falhas intermitentes.
+
+**O que fazer (lado servidor / Coolify):**
+
+1. **Redeploy** do recurso (ou **Restart** dos contentores do stack) para recriar contentores e redes com labels atualizados.
+2. No Coolify: **Restart do proxy** (Traefik) ou do **Docker** no *host*, se após vários deploys ficaram rotas “fantasma” a apontar para IDs antigos.
+3. Confirmar que o recurso **não** tem a opção que isola a rede de forma que o Traefik deixe de ver o stack (comparar com a doc do Coolify para *Predefined Network* / redes do projeto).
+4. Limpar contentores parados órfãos (no servidor, por quem administra a VPS): `docker container prune` (com cuidado) após confirmar que não apaga nada necessário.
+
+Isto **não** é corrigido no código do Bearbet Tracker — é **infraestrutura Coolify + Traefik + Docker**.
+
 ### `address already in use` (portas **80**, **8080**, **3001**, etc.)
 
 No Coolify as portas **80** e **8080** do host costumam estar com o **Traefik** ou outras stacks. O `docker-compose.yml` **não publica** portas no host para `app`, `nginx`, `postgres` nem `redis` — só **`expose`** na rede interna; o proxy do Coolify encaminha para o serviço (ex.: **nginx**, porta de container **80**).
