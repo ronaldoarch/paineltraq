@@ -769,15 +769,17 @@
     <div class="login-logo">Bear<span>bet</span></div>
     <div class="login-subtitle">Tracking Dashboard</div>
     <div id="loginError" class="login-error"></div>
-    <div class="form-group">
-      <label class="form-label">Usuário</label>
-      <input type="text" id="loginUser" class="form-input" placeholder="admin" autocomplete="username">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Senha</label>
-      <input type="password" id="loginPass" class="form-input" placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <button class="btn btn-primary" onclick="login()">Entrar</button>
+    <form id="loginForm" autocomplete="on" onsubmit="event.preventDefault(); login();">
+      <div class="form-group">
+        <label class="form-label" for="loginUser">Usuário</label>
+        <input type="text" id="loginUser" class="form-input" placeholder="admin" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="loginPass">Senha</label>
+        <input type="password" id="loginPass" class="form-input" placeholder="••••••••" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
   </div>
 </div>
 
@@ -1066,6 +1068,7 @@
         </div>
       </div>
 
+      <form id="dashboardSettingsForm" autocomplete="off" onsubmit="event.preventDefault(); saveSettings();">
       <div class="settings-section">
         <h3>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
@@ -1134,7 +1137,8 @@
         </div>
       </div>
 
-      <button class="btn btn-primary" style="width:auto" onclick="saveSettings()">Salvar Configurações</button>
+      <button type="submit" class="btn btn-primary" style="width:auto">Salvar Configurações</button>
+      </form>
     </div>
 
   </main>

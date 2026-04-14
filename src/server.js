@@ -88,11 +88,18 @@ app.use('/webhook/fluxlab', webhookLimiter, webhookFluxlab);
 // Aliases (compatibilidade)
 app.use('/api/xgate/webhook', webhookLimiter, webhookXgate);
 
-// Login com rate limit específico
-app.use('/api/auth/login', loginLimiter);
-
-// API do Dashboard (com autenticação)
-app.use('/api', apiLimiter, apiRoutes);
+// API do Dashboard: rate-limit de login no mesmo mount /api (evita stack duplicado em /api/auth/login)
+app.use(
+  '/api',
+  (req, res, next) => {
+    if (req.method === 'POST' && req.path === '/auth/login') {
+      return loginLimiter(req, res, next);
+    }
+    next();
+  },
+  apiLimiter,
+  apiRoutes,
+);
 
 // Servir dashboard (frontend estático)
 app.use(express.static(path.join(__dirname, '../public')));
