@@ -6,8 +6,8 @@ const redisConfig = {
   port: parseInt(process.env.REDIS_PORT || '6379', 10),
   ...(process.env.REDIS_PASSWORD ? { password: process.env.REDIS_PASSWORD } : {}),
   connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT_MS || '12000', 10),
-  // Falha rápido se Redis estiver em baixo (evita webhook preso até o proxy dar 504)
-  enableOfflineQueue: false,
+  // NÃO usar enableOfflineQueue: false — o Bull/ioredis emite comandos antes do stream estar
+  // pronto no arranque e gera "Stream isn't writeable" + UnhandledRejection.
   maxRetriesPerRequest: parseInt(process.env.REDIS_MAX_RETRIES_PER_REQUEST || '4', 10),
   retryStrategy(times) {
     return Math.min(times * 150, 5000);
