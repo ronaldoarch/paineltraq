@@ -37,6 +37,11 @@ class SettingsService {
     }
   }
 
+  async remove(key) {
+    await query('DELETE FROM settings WHERE key = $1', [key]);
+    logger.info('[Settings] Configuração removida', { key });
+  }
+
   /**
    * Retorna configurações seguras (sem tokens/secrets em claro) para o frontend
    */

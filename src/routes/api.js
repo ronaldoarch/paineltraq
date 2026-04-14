@@ -316,6 +316,33 @@ router.post('/settings/webhook-secrets/generate', authMiddleware, async (req, re
   }
 });
 
+/**
+ * POST /api/settings/webhook-secrets/clear
+ * Remove o secret do BD — o POST /webhook/cassino volta a aceitar chamadas sem header (cuidado em produção).
+ */
+router.post('/settings/webhook-secrets/clear', authMiddleware, async (req, res) => {
+  try {
+    const { target } = req.body || {};
+    if (target !== 'cassino') {
+      return res.status(400).json({ error: 'target inválido (use: cassino)' });
+    }
+    await settingsService.remove('webhook_secret_cassino');
+    try {
+      const cassinoRouter = require('./webhookCassino');
+      if (cassinoRouter.invalidateCassinoWebhookSecretCache) {
+        cassinoRouter.invalidateCassinoWebhookSecretCache();
+      }
+    } catch (_) {
+      /* ignore */
+    }
+    logger.info('[API] webhook_secret_cassino removido');
+    res.json({ success: true, message: 'Secret removido. Validação por header desativada.' });
+  } catch (error) {
+    logger.error('[API] Erro ao remover webhook secret', { error: error.message });
+    res.status(500).json({ error: 'Erro ao remover secret' });
+  }
+});
+
 // ============================================
 // WEBHOOK LOGS
 // ============================================

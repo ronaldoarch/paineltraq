@@ -1134,13 +1134,15 @@
         <div class="form-group full">
           <label class="form-label">Secret do webhook Cassino</label>
           <p class="page-description" style="margin-bottom:10px;font-size:13px;">
-            Opcional. Se gerar um secret aqui, o backoffice do cassino deve enviar o mesmo valor no header
+            Opcional. Se gerar um secret, <strong>só o backoffice do cassino</strong> deve enviar o mesmo valor no header
             <code style="color:var(--accent)">X-Webhook-Secret</code> ou em <code style="color:var(--accent)">Authorization: Bearer …</code>.
+            <strong>Não use este URL nos Webhooks da Meta</strong> (Facebook) — o user-agent <code>Meta-System-Webhook</code> não envia este secret e receberá 401.
             Se também existir <code>WEBHOOK_SECRET_CASSINO</code> no servidor, esse valor tem prioridade.
           </p>
           <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
             <span id="cassinoWebhookSecretStatus" class="text-muted" style="font-size:13px;"></span>
             <button type="button" class="btn btn-secondary btn-sm" onclick="generateCassinoWebhookSecret()">Gerar novo secret</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="clearCassinoWebhookSecret()">Remover secret</button>
           </div>
         </div>
         <div class="form-group">
@@ -1688,6 +1690,26 @@ async function generateCassinoWebhookSecret() {
     loadSettings();
   } catch (e) {
     toast(e.message || 'Erro ao gerar secret', 'error');
+  }
+}
+
+async function clearCassinoWebhookSecret() {
+  if (
+    !confirm(
+      'Remover o secret? Qualquer chamada a /webhook/cassino deixará de exigir header (incluindo a Meta, se o URL estiver errado lá). Continuar?',
+    )
+  ) {
+    return;
+  }
+  try {
+    await api('/api/settings/webhook-secrets/clear', {
+      method: 'POST',
+      body: JSON.stringify({ target: 'cassino' }),
+    });
+    toast('Secret removido.', 'success');
+    loadSettings();
+  } catch (e) {
+    toast(e.message || 'Erro ao remover secret', 'error');
   }
 }
 

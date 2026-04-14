@@ -41,11 +41,17 @@ async function verifyCassinoWebhookSecret(req, res, next) {
       return next();
     }
 
-    logger.warn('[Cassino Webhook] Secret inválida ou ausente');
+    const ua = req.get('user-agent') || '';
+    logger.warn('[Cassino Webhook] Secret inválida ou ausente', {
+      userAgent: ua.slice(0, 120),
+      ip: req.ip,
+    });
+    const metaCaller = /Meta-System-Webhook|facebookexternalhit|meta\.com/i.test(ua);
     return res.status(401).json({
       error: 'Unauthorized',
-      hint:
-        'Envie o mesmo secret no header X-Webhook-Secret ou Authorization: Bearer <secret>. Gere o valor em Configurações ou defina WEBHOOK_SECRET_CASSINO no servidor.',
+      hint: metaCaller
+        ? 'Este URL está a receber pedidos da Meta, que não envia X-Webhook-Secret. Remova esta URL dos Webhooks da Meta ou apague o secret em Configurações. O secret serve só para o backoffice do cassino.'
+        : 'Envie o mesmo secret no header X-Webhook-Secret ou Authorization: Bearer <secret>. Gere em Configurações ou defina WEBHOOK_SECRET_CASSINO no servidor.',
     });
   } catch (err) {
     logger.error('[Cassino Webhook] Erro ao validar secret', { error: err.message });
