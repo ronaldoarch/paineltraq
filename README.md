@@ -43,7 +43,8 @@ bearbet-tracker/
 ├── migrations/          # Scripts de banco de dados
 ├── public/              # Dashboard (frontend)
 ├── nginx/               # Nginx (Dockerfile + nginx.conf)
-├── docker-compose.yml   # Orquestração (VPS + Nginx + Certbot)
+├── docker-compose.yml       # Stack base (Coolify: sem portas no host)
+├── docker-compose.vps.yml   # + portas 80/443/5432/6379 na VPS
 ├── coolify-compose.yml  # Stack para Coolify (app + Postgres + Redis)
 ├── Dockerfile           # Build da aplicação
 ├── scripts/

@@ -100,7 +100,7 @@ META_PIXEL_ID=SEU_PIXEL_ID_DO_FACEBOOK
 META_ACCESS_TOKEN=SEU_TOKEN_DA_CAPI
 ```
 
-Se esta VPS for o **único** reverse proxy e você quiser Nginx nas portas **80** e **443** (em vez de **8080**/**8443**), edite no `docker-compose.yml` o serviço `nginx` e troque as linhas de `ports` para `80:80` e `443:443`.
+O ficheiro **`docker-compose.vps.yml`** (usado no passo seguinte) publica Nginx em **80/443** e Postgres/Redis nas portas habituais no host.
 
 Para salvar e sair do nano:
 1. Aperte `Ctrl + X`
@@ -111,7 +111,11 @@ Para salvar e sair do nano:
 
 ## 🐳 PASSO 5 — Subir o projeto
 
+Na pasta do projeto, defina os dois ficheiros Compose (principal + portas na VPS):
+
 ```bash
+export COMPOSE_FILE=docker-compose.yml:docker-compose.vps.yml
+
 # Construir e iniciar todos os containers
 docker compose up -d --build
 ```
@@ -124,6 +128,8 @@ docker compose ps
 ```
 
 ✅ Deve mostrar 4 containers (app, postgres, redis, nginx) com status "Up"
+
+**Nota:** mantenha `export COMPOSE_FILE=docker-compose.yml:docker-compose.vps.yml` na **mesma sessão SSH** para os comandos `docker compose` dos passos seguintes (ou volte a executar o `export`).
 
 ---
 
@@ -172,12 +178,10 @@ docker compose restart nginx
 
 ## ✅ PASSO 8 — Testar
 
-Abra no navegador (tráfego passa pelo **Nginx**; padrão do compose é **8080** no host):
+Abra no navegador (tráfego passa pelo **Nginx** na porta **80** da VPS):
 ```
-http://SEU_IP:8080/api/health
+http://SEU_IP/api/health
 ```
-
-Se você alterou o Nginx para **80:80**, use `http://SEU_IP/api/health`.
 
 Ou se já configurou domínio e SSL:
 ```
@@ -274,6 +278,7 @@ cd /opt/bearbet-tracker
 # Se estiver usando Git
 git pull
 
+export COMPOSE_FILE=docker-compose.yml:docker-compose.vps.yml
 # Reconstruir e reiniciar
 docker compose up -d --build
 ```

@@ -1,0 +1,18 @@
+# Use na VPS (sem Coolify) junto com o compose principal:
+#   docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d --build
+#
+# Publica Nginx em 80/443 e (opcional) Postgres/Redis no host para ferramentas locais.
+
+services:
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"

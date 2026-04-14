@@ -13,7 +13,8 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-true}
     # Sem publicar 3001 no host: evita "address already in use" no Coolify e em
     # servidores com várias stacks. O Nginx acessa app:3001 na rede interna.
-    # Acesso externo: portas 80/443 do Nginx. Debug direto: docker compose exec app wget -qO- http://127.0.0.1:3001/api/health
+    # Acesso externo: no Coolify o proxy fala com app/nginx na rede Docker (sem porta no host).
+    # Na VPS: use também -f docker-compose.vps.yml para publicar 80/443. Debug: docker compose exec app wget -qO- http://127.0.0.1:3001/api/health
     expose:
       - "3001"
     depends_on:
@@ -42,8 +43,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-bearbet_tracker}
       POSTGRES_USER: ${DB_USER:-bearbet}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-TROQUE_POR_UMA_SENHA_FORTE_AQUI}
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -61,8 +62,8 @@ services:
     image: redis:7-alpine
     container_name: bearbet-redis
     restart: always
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -84,12 +85,11 @@ services:
     image: bearbet-nginx:local
     container_name: bearbet-nginx
     restart: always
-    # Portas FIXAS no host (não use variável): o Coolify costuma injetar NGINX_HTTP_PORT/PORT=80
-    # no .env e quebra o deploy. Aqui 8080/8443 não disputam com o Traefik do Coolify.
-    # VPS com Nginx na 80/443: troque manualmente para "80:80" e "443:443" nestas duas linhas.
-    ports:
-      - "8080:80"
-      - "8443:443"
+    # Sem "ports" no host: Coolify/Traefik encosta na rede do projeto (80/8080 do host costumam estar ocupados).
+    # Na VPS com acesso direto às portas: docker compose -f docker-compose.yml -f docker-compose.vps.yml up -d
+    expose:
+      - "80"
+      - "443"
     volumes:
       # Certificados e ACME (nginx.conf já está na imagem — não montar arquivo no host)
       - ./nginx/ssl:/etc/nginx/ssl:ro

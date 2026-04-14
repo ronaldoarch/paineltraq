@@ -67,11 +67,11 @@ Cadastre URLs públicas **HTTPS** do Coolify, por exemplo:
 
 ## Problemas comuns no Coolify
 
-### `address already in use` na porta **3001**
+### `address already in use` (portas **80**, **8080**, **3001**, etc.)
 
-O `docker-compose.yml` antigo publicava `3001:3001` no host; no servidor do Coolify essa porta costuma estar ocupada por outro app ou pelo próprio proxy.
+No Coolify as portas **80** e **8080** do host costumam estar com o **Traefik** ou outras stacks. O `docker-compose.yml` **não publica** portas no host para `app`, `nginx`, `postgres` nem `redis` — só **`expose`** na rede interna; o proxy do Coolify encaminha para o serviço (ex.: **nginx**, porta de container **80**).
 
-**Correção no repositório:** o serviço `app` só usa **`expose: ["3001"]`** (rede interna). O tráfego público entra pelo **Nginx** nas portas **80/443**.
+Na UI do recurso (**Domínios** / **Portas**), associe o domínio ao serviço **nginx** na porta **80** do *container* (não confundir com publicação no host).
 
 ### Erro ao montar **`nginx.conf`** (“directory onto a file” / `not a directory`)
 
@@ -79,11 +79,9 @@ O Coolify grava dados em `/data/coolify/applications/.../`. Bind-mount de **arqu
 
 **Correção no repositório:** o serviço **nginx** passa a ser **build** a partir de `nginx/Dockerfile`, que copia `nginx.conf` **para dentro da imagem** — não há mais mount do arquivo no host.
 
-### `Bind for 0.0.0.0:80 failed: port is already allocated`
+### `Bind for 0.0.0.0:8080 failed: port is already allocated`
 
-No servidor do Coolify a **porta 80** já é do **Traefik**. O `docker-compose.yml` publica o Nginx em **`8080→80`** e **`8443→443`** no host (valores **fixos**, para o Coolify não sobrescrever com variáveis como `NGINX_HTTP_PORT=80` no `.env`).
-
-No recurso, configure o proxy/domínio do Coolify para a porta **8080** (HTTP interno do Nginx). Se no ambiente do Coolify existir `NGINX_HTTP_PORT` ou `PORT` forçando **80**, **remova** — não são usados pelo compose atual.
+Outro recurso no mesmo servidor pode estar a usar **8080** no host. O compose **já não mapeia** Nginx nem app para o host; se ainda vir este erro, confirme que o deploy usa o **`docker-compose.yml` atual** do Git e remova containers antigos do mesmo projeto no servidor.
 
 ### Preferir sem Nginx no Coolify
 
@@ -93,11 +91,4 @@ Use o arquivo **`coolify-compose.yml`**: só app + Postgres + Redis, **sem** Ngi
 
 Para VPS sem Coolify, continue usando **`docker-compose.yml`** e o guia **[DEPLOY.md](./DEPLOY.md)**.
 
-Para expor o Node direto na máquina (ex.: `localhost:3001`), crie um arquivo **`docker-compose.override.yml`** local (não versionado) com:
-
-```yaml
-services:
-  app:
-    ports:
-      - "3001:3001"
-```
+Na **VPS** (sem Coolify), use **`docker-compose.vps.yml`** junto com o principal — ver **[DEPLOY.md](./DEPLOY.md)** (`COMPOSE_FILE=docker-compose.yml:docker-compose.vps.yml`).
