@@ -107,6 +107,32 @@ class EventService {
   }
 
   /**
+   * Mapeia tipo interno → nome standard Meta (inclui equivalência "compacta", ex.: PaymentDepositCompleted).
+   */
+  static resolveMetaEventName(eventType) {
+    const et = String(eventType || '').toLowerCase().trim();
+    if (!et) return String(eventType || '');
+    if (EventService.EVENT_MAP[et]) return EventService.EVENT_MAP[et];
+    const compact = et.replace(/[^a-z0-9]/gi, '');
+    if (!compact) return String(eventType || '');
+    for (const k of Object.keys(EventService.EVENT_MAP)) {
+      const kc = k.toLowerCase().replace(/[^a-z0-9]/gi, '');
+      if (kc === compact) return EventService.EVENT_MAP[k];
+    }
+    return String(eventType || '');
+  }
+
+  /** Condição SQL: conta depósitos por event_name Purchase OU por event_type mapeado para Purchase. */
+  static purchaseStatsSqlCondition(tableAlias = '') {
+    const p = tableAlias ? `${tableAlias}.` : '';
+    const types = Object.keys(EventService.EVENT_MAP)
+      .filter((k) => EventService.EVENT_MAP[k] === 'Purchase')
+      .map((k) => `'${String(k).replace(/'/g, "''")}'`);
+    const list = types.length ? types.join(', ') : `''`;
+    return `(${p}event_name = 'Purchase' OR LOWER(TRIM(COALESCE(${p}event_type::text, ''))) IN (${list}))`;
+  }
+
+  /**
    * Processa um evento recebido de qualquer fonte
    * 
    * Fluxo:
@@ -119,8 +145,8 @@ class EventService {
    */
   async processEvent({ eventType, source, payload, userData = {}, value = 0, currency = 'BRL' }) {
     try {
-      // 1. Mapear evento para nome do Meta
-      const metaEventName = EventService.EVENT_MAP[eventType.toLowerCase()] || eventType;
+      // 1. Mapear evento para nome do Meta (mesma lógica que isCassinoEventAccepted / compact)
+      const metaEventName = EventService.resolveMetaEventName(eventType);
 
       logger.info('[EventService] Processando evento', {
         eventType,
@@ -416,6 +442,7 @@ class EventService {
     }
 
     const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+    const depCond = EventService.purchaseStatsSqlCondition();
 
     const [totals, byType, byDay, recentErrors, webhookTotal, webhookBySource] = await Promise.all([
       // Totais gerais
@@ -426,8 +453,8 @@ class EventService {
           COUNT(CASE WHEN status = 'error' THEN 1 END) as errors,
           COALESCE(SUM(value), 0) as total_value,
           COUNT(DISTINCT user_id) as unique_users,
-          COUNT(CASE WHEN event_name = 'Purchase' THEN 1 END) as total_purchases,
-          COALESCE(SUM(CASE WHEN event_name = 'Purchase' THEN value ELSE 0 END), 0) as purchase_value,
+          COUNT(CASE WHEN ${depCond} THEN 1 END) as total_purchases,
+          COALESCE(SUM(CASE WHEN ${depCond} THEN value ELSE 0 END), 0) as purchase_value,
           COUNT(CASE WHEN event_name = 'CompleteRegistration' THEN 1 END) as total_registrations,
           COUNT(CASE WHEN event_name = 'InitiateCheckout' THEN 1 END) as total_initiates
         FROM events ${whereClause}`,
@@ -452,9 +479,9 @@ class EventService {
         `SELECT
           DATE(created_at) as date,
           COUNT(*) as total_events,
-          COUNT(CASE WHEN event_name = 'Purchase' THEN 1 END) as purchases,
+          COUNT(CASE WHEN ${depCond} THEN 1 END) as purchases,
           COUNT(CASE WHEN event_name = 'CompleteRegistration' THEN 1 END) as registrations,
-          COALESCE(SUM(CASE WHEN event_name = 'Purchase' THEN value ELSE 0 END), 0) as revenue,
+          COALESCE(SUM(CASE WHEN ${depCond} THEN value ELSE 0 END), 0) as revenue,
           COUNT(CASE WHEN meta_sent = true THEN 1 END) as sent_to_meta
         FROM events
         WHERE created_at >= NOW() - INTERVAL '30 days'

@@ -12,6 +12,48 @@ router.use(webhookLogger('cassino'));
 const CASSINO_SECRET_CACHE_TTL_MS = 30_000;
 let cassinoDbSecretCache = { value: '', loadedAt: 0 };
 
+/** Valor monetário do depósito (vários formatos Meta System / gateways). */
+function extractDepositAmount(data) {
+  if (!data || typeof data !== 'object') return 0;
+  const candidates = [
+    data.amount,
+    data.value,
+    data.deposit_amount,
+    data.total,
+    data.totalAmount,
+    data.total_amount,
+    data.paidAmount,
+    data.paid_amount,
+    data.money,
+    data.amountPaid,
+    data.price,
+    data.netAmount,
+    data.net_amount,
+    data.transaction?.amount,
+    data.payment?.amount,
+    data.deposit?.amount,
+  ];
+  for (const c of candidates) {
+    if (c == null) continue;
+    if (typeof c === 'number' && Number.isFinite(c)) return c;
+    if (typeof c === 'string') {
+      const normalized = c.replace(/\s/g, '').replace(',', '.');
+      const n = parseFloat(normalized);
+      if (Number.isFinite(n)) return n;
+    }
+    if (typeof c === 'object' && c.amount != null) {
+      const n = parseFloat(String(c.amount).replace(/\s/g, '').replace(',', '.'));
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  const cents = data.amountCents ?? data.amount_cent ?? data.valueInCents ?? data.value_cent;
+  if (cents != null) {
+    const n = Number(cents);
+    if (Number.isFinite(n)) return n / 100;
+  }
+  return 0;
+}
+
 async function resolveCassinoSecretFromDb() {
   const now = Date.now();
   if (now - cassinoDbSecretCache.loadedAt < CASSINO_SECRET_CACHE_TTL_MS) {
@@ -187,7 +229,7 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
       source: 'cassino',
     };
 
-    const value = parseFloat(data.amount || data.value || data.deposit_amount || 0);
+    const value = extractDepositAmount(data);
 
     const result = await eventService.processEvent({
       eventType: eventType.toLowerCase(),
