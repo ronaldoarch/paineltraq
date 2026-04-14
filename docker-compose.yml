@@ -78,14 +78,17 @@ services:
   # NGINX (REVERSE PROXY + SSL)
   # ============================================
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    image: bearbet-nginx:local
     container_name: bearbet-nginx
     restart: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Certificados e ACME (nginx.conf já está na imagem — não montar arquivo no host)
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - certbot_data:/var/www/certbot:ro
     depends_on:

@@ -1,6 +1,10 @@
 node_modules/
 logs/
 .env
-nginx/ssl/
+# Certificados locais (não versionar); a pasta existe via .gitkeep
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/live/
+nginx/ssl/archive/
 *.log
 .DS_Store

@@ -73,6 +73,12 @@ O `docker-compose.yml` antigo publicava `3001:3001` no host; no servidor do Cool
 
 **Correção no repositório:** o serviço `app` só usa **`expose: ["3001"]`** (rede interna). O tráfego público entra pelo **Nginx** nas portas **80/443**.
 
+### Erro ao montar **`nginx.conf`** (“directory onto a file” / `not a directory`)
+
+O Coolify grava dados em `/data/coolify/applications/.../`. Bind-mount de **arquivo** (`./nginx/nginx.conf`) nesse ambiente às vezes vira diretório e o Nginx não sobe.
+
+**Correção no repositório:** o serviço **nginx** passa a ser **build** a partir de `nginx/Dockerfile`, que copia `nginx.conf` **para dentro da imagem** — não há mais mount do arquivo no host.
+
 ### Conflito nas portas **80/443** ou preferir SSL só no Coolify
 
 Se o compose com **Nginx** ainda conflitar com o proxy do Coolify, use o arquivo **`coolify-compose.yml`**: só app + Postgres + Redis, **sem** Nginx/Certbot, com SSL e domínio configurados na UI do Coolify (recomendado para Coolify).

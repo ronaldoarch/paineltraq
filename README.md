@@ -42,7 +42,7 @@ bearbet-tracker/
 │   └── server.js        # Entry point
 ├── migrations/          # Scripts de banco de dados
 ├── public/              # Dashboard (frontend)
-├── nginx/               # Configuração do Nginx
+├── nginx/               # Nginx (Dockerfile + nginx.conf)
 ├── docker-compose.yml   # Orquestração (VPS + Nginx + Certbot)
 ├── coolify-compose.yml  # Stack para Coolify (app + Postgres + Redis)
 ├── Dockerfile           # Build da aplicação

@@ -6,4 +6,5 @@ logs
 .gitignore
 README.md
 DEPLOY.md
-nginx/ssl
+nginx/ssl/*.pem
+nginx/ssl/*.key
