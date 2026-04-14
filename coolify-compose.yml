@@ -45,10 +45,12 @@ services:
       SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
     expose:
       - "3000"
-    # Não declaramos a rede 'coolify' aqui — o Coolify anexa o container
-    # automaticamente ao proxy quando detecta SERVICE_FQDN_APP_3000.
-    # Declarar 'coolify: external: true' pode interferir nesse processo.
+    # Quando o container está em múltiplas redes, o Traefik não sabe qual IP usar.
+    # traefik.docker.network=coolify instrui o Traefik a usar o IP da rede correta.
+    labels:
+      - "traefik.docker.network=coolify"
     networks:
+      - coolify
       - app-internal
     depends_on:
       postgres:
@@ -112,8 +114,9 @@ volumes:
   redis_data:
 
 networks:
-  # Rede interna isolada: app ↔ postgres ↔ redis.
-  # O Coolify anexa automaticamente o container 'app' à rede proxy (coolify)
-  # quando detecta SERVICE_FQDN_APP_3000 — não precisamos declará-la aqui.
+  # Rede do proxy do Coolify/Traefik — deve existir (criada pelo Coolify).
+  coolify:
+    external: true
+  # Rede interna: app ↔ postgres ↔ redis, sem exposição ao proxy.
   app-internal:
     driver: bridge
