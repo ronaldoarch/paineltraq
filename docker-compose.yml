@@ -11,6 +11,8 @@ services:
     env_file: .env
     environment:
       TRUST_PROXY: ${TRUST_PROXY:-true}
+      # Fixa a porta: o Coolify costuma injetar PORT=3000; o Nginx e o expose usam 3001.
+      PORT: "3001"
       # Obrigatório na rede Docker (Coolify às vezes injeta DB_HOST=localhost no .env)
       DB_HOST: postgres
       REDIS_HOST: redis
