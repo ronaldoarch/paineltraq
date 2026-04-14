@@ -14,7 +14,8 @@ services:
       NODE_ENV: production
       TRUST_PROXY: "true"
       PORT: "3000"
-      DB_HOST: postgres
+      # Alias único para evitar colisão de DNS com containers postgres de deploys antigos na rede coolify
+      DB_HOST: pg-bearbet
       DB_PORT: "5432"
       DB_NAME: ${DB_NAME:-bearbet_tracker}
       DB_USER: ${DB_USER:-bearbet}
@@ -80,7 +81,9 @@ services:
     volumes:
       - postgres_data_v5:/var/lib/postgresql/data
     networks:
-      - app-internal
+      app-internal:
+        aliases:
+          - pg-bearbet
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bearbet} -d ${DB_NAME:-bearbet_tracker} -h 127.0.0.1"]
       interval: 5s
