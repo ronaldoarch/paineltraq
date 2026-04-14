@@ -45,10 +45,10 @@ services:
       SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
     expose:
       - "3000"
-    # app precisa estar na rede 'coolify' para o Traefik do Coolify conseguir rotear.
-    # postgres e redis ficam só na rede interna — sem exposição ao proxy.
+    # Não declaramos a rede 'coolify' aqui — o Coolify anexa o container
+    # automaticamente ao proxy quando detecta SERVICE_FQDN_APP_3000.
+    # Declarar 'coolify: external: true' pode interferir nesse processo.
     networks:
-      - coolify
       - app-internal
     depends_on:
       postgres:
@@ -112,10 +112,8 @@ volumes:
   redis_data:
 
 networks:
-  # Rede do Traefik do Coolify — deve existir antes do deploy (criada pelo Coolify).
-  # O app precisa estar aqui para o proxy rotear o tráfego HTTPS.
-  coolify:
-    external: true
-  # Rede interna: app ↔ postgres ↔ redis, sem exposição ao Traefik.
+  # Rede interna isolada: app ↔ postgres ↔ redis.
+  # O Coolify anexa automaticamente o container 'app' à rede proxy (coolify)
+  # quando detecta SERVICE_FQDN_APP_3000 — não precisamos declará-la aqui.
   app-internal:
     driver: bridge
