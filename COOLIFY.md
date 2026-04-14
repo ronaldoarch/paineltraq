@@ -65,6 +65,27 @@ Cadastre URLs públicas **HTTPS** do Coolify, por exemplo:
 - `https://track.seudominio.com/webhook/cassino`
 - `https://track.seudominio.com/webhook/fluxlab`
 
+## Problemas comuns no Coolify
+
+### `address already in use` na porta **3001**
+
+O `docker-compose.yml` antigo publicava `3001:3001` no host; no servidor do Coolify essa porta costuma estar ocupada por outro app ou pelo próprio proxy.
+
+**Correção no repositório:** o serviço `app` só usa **`expose: ["3001"]`** (rede interna). O tráfego público entra pelo **Nginx** nas portas **80/443**.
+
+### Conflito nas portas **80/443** ou preferir SSL só no Coolify
+
+Se o compose com **Nginx** ainda conflitar com o proxy do Coolify, use o arquivo **`coolify-compose.yml`**: só app + Postgres + Redis, **sem** Nginx/Certbot, com SSL e domínio configurados na UI do Coolify (recomendado para Coolify).
+
 ## Stack local original (Nginx + Certbot)
 
 Para VPS sem Coolify, continue usando **`docker-compose.yml`** e o guia **[DEPLOY.md](./DEPLOY.md)**.
+
+Para expor o Node direto na máquina (ex.: `localhost:3001`), crie um arquivo **`docker-compose.override.yml`** local (não versionado) com:
+
+```yaml
+services:
+  app:
+    ports:
+      - "3001:3001"
+```

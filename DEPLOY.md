@@ -170,9 +170,9 @@ docker compose restart nginx
 
 ## ✅ PASSO 8 — Testar
 
-Abra no navegador:
+Abra no navegador (tráfego passa pelo **Nginx** na porta **80**):
 ```
-http://SEU_IP:3001/api/health
+http://SEU_IP/api/health
 ```
 
 Ou se já configurou domínio e SSL:
@@ -283,8 +283,9 @@ docker compose up -d --build
 ```bash
 ufw allow 80
 ufw allow 443
-ufw allow 3001
 ```
+
+O app Node escuta só na rede Docker na **3001**; não é necessário liberar **3001** no firewall, a menos que você use um `docker-compose.override.yml` para publicar essa porta no host.
 
 ### Container postgres não sobe
 → Verifique a senha no .env — ela não pode ter caracteres especiais como `$` ou `!`
