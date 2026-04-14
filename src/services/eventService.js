@@ -449,7 +449,8 @@ class EventService {
       query(
         `SELECT
           COUNT(*) as total_events,
-          COUNT(CASE WHEN meta_sent = true THEN 1 END) as sent_to_meta,
+          COUNT(CASE WHEN meta_sent IS TRUE OR status = 'sent' THEN 1 END) as sent_to_meta,
+          COUNT(CASE WHEN status = 'queued' THEN 1 END) as queued_for_meta,
           COUNT(CASE WHEN status = 'error' THEN 1 END) as errors,
           COALESCE(SUM(value), 0) as total_value,
           COUNT(DISTINCT user_id) as unique_users,
@@ -466,7 +467,7 @@ class EventService {
         `SELECT
           event_name, event_type,
           COUNT(*) as total,
-          COUNT(CASE WHEN meta_sent = true THEN 1 END) as sent,
+          COUNT(CASE WHEN meta_sent IS TRUE OR status = 'sent' THEN 1 END) as sent,
           COALESCE(SUM(value), 0) as total_value
         FROM events ${whereClause}
         GROUP BY event_name, event_type
@@ -482,7 +483,7 @@ class EventService {
           COUNT(CASE WHEN ${depCond} THEN 1 END) as purchases,
           COUNT(CASE WHEN event_name = 'CompleteRegistration' THEN 1 END) as registrations,
           COALESCE(SUM(CASE WHEN ${depCond} THEN value ELSE 0 END), 0) as revenue,
-          COUNT(CASE WHEN meta_sent = true THEN 1 END) as sent_to_meta
+          COUNT(CASE WHEN meta_sent IS TRUE OR status = 'sent' THEN 1 END) as sent_to_meta
         FROM events
         WHERE created_at >= NOW() - INTERVAL '30 days'
         GROUP BY DATE(created_at)
