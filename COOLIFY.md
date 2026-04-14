@@ -67,6 +67,16 @@ Cadastre URLs públicas **HTTPS** do Coolify, por exemplo:
 
 ## Problemas comuns no Coolify
 
+### **504 ao fim de ~60s (Traefik no Coolify)**
+
+O proxy **Traefik** do Coolify usa, por defeito, **read timeout ~60s**. Pedidos ao Node que demorem mais (ex.: `/api/stats` com BD lenta) são cortados com **504**, mesmo com a app saudável.
+
+1. **Aumentar timeout no Traefik (servidor):** Coolify → **Servidor** → **Proxy** → comando / configuração estática, por exemplo:  
+   `--entrypoints.web.transport.respondingTimeouts.readTimeout=5m`  
+   `--entrypoints.websecure.transport.respondingTimeouts.readTimeout=5m`  
+   (Nomes `web` / `websecure` podem variar — vê [Gateway Timeout — Coolify](https://coolify.io/docs/troubleshoot/applications/gateway-timeout).)
+2. **Na app:** `STATS_CACHE_TTL_MS` (cache de `/api/stats`, em ms) — já definido no `coolify-compose.yml` por defeito.
+
 ### **504 Gateway Timeout** — checklist rápido
 
 1. **Qual compose está no Coolify?** `coolify-compose.yml` → domínio no serviço **`app`** com **`https://…:3000`** (porta só para o proxy). `docker-compose.yml` → ou domínio no **`nginx`** com **`:80`**, ou no **`app`** com **`:3001`**. Misturar (ex.: `:3000` com app na 3001) gera **504**.

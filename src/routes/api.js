@@ -11,6 +11,9 @@ const settingsService = require('../services/settingsService');
 const metaService = require('../services/metaService');
 const logger = require('../config/logger');
 
+/** Resposta em cache de GET /api/stats (TTL curto — reduz carga e risco de 504 no Traefik ~60s). */
+let statsCache = null;
+
 // ============================================
 // AUTH
 // ============================================
@@ -106,15 +109,25 @@ router.get('/auth/me', authMiddleware, (req, res) => {
 router.get('/stats', authMiddleware, async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const stats = await eventService.getStats({ startDate, endDate });
-    const totalUsers = await userService.count();
-    const todayUsers = await userService.countToday();
+    const cacheKey = `${startDate || ''}|${endDate || ''}`;
+    const ttl = parseInt(process.env.STATS_CACHE_TTL_MS || '8000', 10);
+    if (ttl > 0 && statsCache && statsCache.key === cacheKey && Date.now() < statsCache.expires) {
+      res.set('X-Stats-Cache', 'HIT');
+      return res.json(statsCache.body);
+    }
 
-    res.json({
-      ...stats,
-      totalUsers,
-      todayUsers,
-    });
+    const [stats, totalUsers, todayUsers] = await Promise.all([
+      eventService.getStats({ startDate, endDate }),
+      userService.count(),
+      userService.countToday(),
+    ]);
+
+    const body = { ...stats, totalUsers, todayUsers };
+    if (ttl > 0) {
+      statsCache = { key: cacheKey, expires: Date.now() + ttl, body };
+    }
+    res.set('X-Stats-Cache', 'MISS');
+    res.json(body);
   } catch (error) {
     logger.error('[API] Erro ao buscar stats', { error: error.message });
     res.status(500).json({ error: 'Erro ao buscar estatísticas' });
