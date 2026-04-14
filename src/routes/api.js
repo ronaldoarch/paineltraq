@@ -235,7 +235,8 @@ router.put('/settings', authMiddleware, async (req, res) => {
   try {
     const allowedKeys = [
       'meta_pixel_id', 'meta_access_token', 'meta_api_version',
-      'meta_test_event_code', 'debug_mode', 'deduplication_window_minutes'
+      'meta_test_event_code', 'debug_mode', 'deduplication_window_minutes',
+      'webhook_secret_cassino',
     ];
 
     const updates = {};
@@ -253,7 +254,24 @@ router.put('/settings', authMiddleware, async (req, res) => {
       delete updates.meta_access_token;
     }
 
+    if (updates.webhook_secret_cassino !== undefined) {
+      const w = String(updates.webhook_secret_cassino).trim();
+      if (w) {
+        updates.webhook_secret_cassino = w;
+      } else {
+        delete updates.webhook_secret_cassino;
+      }
+    }
+
     await settingsService.setMultiple(updates);
+    if (updates.webhook_secret_cassino) {
+      try {
+        const cr = require('./webhookCassino');
+        if (cr.invalidateCassinoWebhookSecretCache) cr.invalidateCassinoWebhookSecretCache();
+      } catch (_) {
+        /* ignore */
+      }
+    }
     logger.info('[API] Settings atualizadas', { keys: Object.keys(updates) });
 
     res.json({ success: true, message: 'Configurações atualizadas' });

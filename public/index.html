@@ -1132,13 +1132,19 @@
           <input type="text" class="form-input mono" readonly id="webhookUrlCassino">
         </div>
         <div class="form-group full">
-          <label class="form-label">Secret do webhook Cassino</label>
+          <label class="form-label">Chave secreta — Meta System (cassino)</label>
           <p class="page-description" style="margin-bottom:10px;font-size:13px;">
-            Opcional. Se gerar um secret, <strong>só o backoffice do cassino</strong> deve enviar o mesmo valor no header
-            <code style="color:var(--accent)">X-Webhook-Secret</code> ou em <code style="color:var(--accent)">Authorization: Bearer …</code>.
-            <strong>Não use este URL nos Webhooks da Meta</strong> (Facebook) — o user-agent <code>Meta-System-Webhook</code> não envia este secret e receberá 401.
-            Se também existir <code>WEBHOOK_SECRET_CASSINO</code> no servidor, esse valor tem prioridade.
+            O <strong>Meta System</strong> assina o corpo com HMAC-SHA256 e envia o header
+            <code style="color:var(--accent)">X-Webhook-Signature: sha256=…</code> (documentação oficial).
+            A <strong>mesma chave</strong> que definires no Meta System deve estar guardada aqui: podes
+            <strong>gerar aqui e colar no Meta System</strong>, ou <strong>colar no campo abaixo a chave que o Meta System te mostrou</strong> e clicar em Salvar.
+            Modo alternativo legado: header <code>X-Webhook-Secret</code> ou <code>Bearer</code> com o valor em claro.
+            Variável <code>WEBHOOK_SECRET_CASSINO</code> no servidor tem prioridade sobre o valor guardado no painel.
           </p>
+          <div class="form-group full" style="margin-bottom:12px;">
+            <label class="form-label">Colar chave do Meta System (opcional)</label>
+            <input type="password" id="settingCassinoWebhookSecretPaste" class="form-input" placeholder="Só preencher se a chave foi gerada no Meta System; depois Salvar Configurações" autocomplete="new-password">
+          </div>
           <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
             <span id="cassinoWebhookSecretStatus" class="text-muted" style="font-size:13px;"></span>
             <button type="button" class="btn btn-secondary btn-sm" onclick="generateCassinoWebhookSecret()">Gerar novo secret</button>
@@ -1636,11 +1642,13 @@ async function loadSettings() {
     document.getElementById('webhookUrlCassino').value = `${baseUrl}/webhook/cassino`;
     document.getElementById('webhookUrlFluxlab').value = `${baseUrl}/webhook/fluxlab`;
 
+    const paste = document.getElementById('settingCassinoWebhookSecretPaste');
+    if (paste) paste.value = '';
     const st = document.getElementById('cassinoWebhookSecretStatus');
     if (st) {
       st.textContent = data.webhook_secret_cassino?.configured
-        ? 'Estado: secret configurado (gerar de novo substitui o anterior).'
-        : 'Estado: sem secret — webhook aceita qualquer chamada até gerar um secret ou definir WEBHOOK_SECRET_CASSINO no servidor.';
+        ? 'Estado: chave configurada — o Meta System pode usar X-Webhook-Signature (HMAC) com esta chave.'
+        : 'Estado: sem chave — pedidos sem assinatura válida não são autenticados por secret (qualquer origem).';
     }
   } catch (e) {
     console.error('Erro ao carregar settings:', e);
@@ -1658,12 +1666,16 @@ async function saveSettings() {
     };
     const tok = document.getElementById('settingAccessToken').value.trim();
     if (tok) body.meta_access_token = tok;
+    const cassinoKey = document.getElementById('settingCassinoWebhookSecretPaste')?.value?.trim();
+    if (cassinoKey) body.webhook_secret_cassino = cassinoKey;
 
     await api('/api/settings', {
       method: 'PUT',
       body: JSON.stringify(body),
     });
     toast('Configurações salvas!', 'success');
+    const p = document.getElementById('settingCassinoWebhookSecretPaste');
+    if (p) p.value = '';
     loadSettings();
   } catch (e) {
     toast(e.message || 'Erro ao salvar configurações', 'error');

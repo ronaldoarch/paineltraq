@@ -42,8 +42,17 @@ app.use(cors({
   credentials: true,
 }));
 
-// Parse JSON
-app.use(express.json({ limit: '10mb' }));
+// Parse JSON (guarda corpo bruto nos /webhook/* para HMAC ex.: Meta System → X-Webhook-Signature)
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+      if (req.originalUrl && req.originalUrl.startsWith('/webhook/')) {
+        req.rawBody = buf;
+      }
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 
 // Logging HTTP
