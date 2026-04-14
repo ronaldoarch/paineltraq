@@ -32,6 +32,7 @@ router.use(webhookLogger('fluxlab'));
  * }
  */
 router.post('/', async (req, res) => {
+  const mark = require('../middleware/webhookLogger').markWebhookLog;
   try {
     const payload = req.body;
     const eventType = payload.event || payload.type || 'lead.created';
@@ -79,6 +80,7 @@ router.post('/', async (req, res) => {
       currency: payload.currency || 'BRL',
     });
 
+    await mark(req.webhookLogId, true, null);
     return res.status(200).json({
       received: true,
       processed: true,
@@ -86,6 +88,7 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     logger.error('[FluxLab Webhook] Erro ao processar', { error: error.message });
+    await mark(req.webhookLogId, false, error.message);
     return res.status(200).json({
       received: true,
       processed: false,

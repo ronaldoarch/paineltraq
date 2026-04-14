@@ -41,6 +41,7 @@ function verifyMetaSystemSignature(secret, rawBody, signatureHeader) {
 }
 
 async function verifyCassinoWebhookSecret(req, res, next) {
+  const mark = require('../middleware/webhookLogger').markWebhookLog;
   try {
     const envSecret = process.env.WEBHOOK_SECRET_CASSINO?.trim();
     const dbSecret = envSecret ? '' : await resolveCassinoSecretFromDb();
@@ -69,6 +70,7 @@ async function verifyCassinoWebhookSecret(req, res, next) {
       hasSignatureHeader: Boolean(sigHeader),
       hasRawBody: Boolean(rawBody && rawBody.length),
     });
+    await mark(req.webhookLogId, false, '401 Unauthorized — X-Webhook-Signature ou secret inválido');
     return res.status(401).json({
       error: 'Unauthorized',
       hint:
@@ -106,6 +108,7 @@ async function verifyCassinoWebhookSecret(req, res, next) {
  * }
  */
 router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
+  const mark = require('../middleware/webhookLogger').markWebhookLog;
   try {
     const payload = req.body;
     const eventType = payload.event || payload.type || '';
@@ -127,7 +130,20 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
 
     if (!relevantEvents.some(e => eventType.toLowerCase().includes(e.replace('.', '')))) {
       logger.info('[Cassino Webhook] Evento ignorado', { event: eventType });
+      await mark(req.webhookLogId, false, 'Ignorado: tipo de evento não mapeado para CAPI');
       return res.status(200).json({ received: true, processed: false, reason: 'event_not_relevant' });
+    }
+
+    // Teste manual do Meta System (sem utilizador real) — não criar user nem enviar ao Meta
+    const isTestPing = payload.data?.test === true || payload.metadata?.isTest === true;
+    if (isTestPing) {
+      await mark(req.webhookLogId, true, null);
+      return res.status(200).json({
+        received: true,
+        processed: true,
+        skipped: true,
+        reason: 'meta_system_test_webhook',
+      });
     }
 
     // Extrair dados (snake_case legado + camelCase Meta System)
@@ -177,6 +193,7 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
       currency: data.currency || 'BRL',
     });
 
+    await mark(req.webhookLogId, true, null);
     return res.status(200).json({
       received: true,
       processed: true,
@@ -184,6 +201,7 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
     });
   } catch (error) {
     logger.error('[Cassino Webhook] Erro ao processar', { error: error.message });
+    await mark(req.webhookLogId, false, error.message);
     return res.status(200).json({
       received: true,
       processed: false,

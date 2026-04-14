@@ -36,6 +36,7 @@ router.use(webhookLogger('xgate'));
  * }
  */
 router.post('/', async (req, res) => {
+  const mark = require('../middleware/webhookLogger').markWebhookLog;
   try {
     const payload = req.body;
 
@@ -51,6 +52,7 @@ router.post('/', async (req, res) => {
       logger.info('[XGate Webhook] Evento ignorado (não relevante)', {
         event: payload.event || payload.type || payload.status,
       });
+      await mark(req.webhookLogId, false, 'Ignorado: evento não relevante');
       return res.status(200).json({ received: true, processed: false, reason: 'event_not_relevant' });
     }
 
@@ -70,6 +72,7 @@ router.post('/', async (req, res) => {
       currency: payload.data?.currency || payload.currency || 'BRL',
     });
 
+    await mark(req.webhookLogId, true, null);
     return res.status(200).json({
       received: true,
       processed: true,
@@ -77,6 +80,7 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     logger.error('[XGate Webhook] Erro ao processar', { error: error.message });
+    await mark(req.webhookLogId, false, error.message);
     // Retorna 200 para a XGate não ficar reenviando em caso de erro nosso
     return res.status(200).json({
       received: true,
