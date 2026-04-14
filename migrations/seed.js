@@ -5,15 +5,29 @@ const { pool } = require('../src/config/database');
 async function seed() {
   console.log('🌱 Criando dados iniciais...\n');
 
-  // Criar usuário admin padrão
+  // Criar usuário admin padrão (user: admin / pass: bearbet2024)
   const passwordHash = await bcrypt.hash('bearbet2024', 12);
-  await pool.query(
-    `INSERT INTO admin_users (username, password_hash, role)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (username) DO NOTHING`,
-    ['admin', passwordHash, 'superadmin']
-  );
-  console.log('  ✅ Usuário admin criado (user: admin / pass: bearbet2024)');
+  const resetAdmin = process.env.RESET_ADMIN_PASSWORD === 'true';
+  if (resetAdmin) {
+    await pool.query(
+      `INSERT INTO admin_users (username, password_hash, role)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (username) DO UPDATE SET
+         password_hash = EXCLUDED.password_hash,
+         role = EXCLUDED.role`,
+      ['admin', passwordHash, 'superadmin']
+    );
+    console.log('  ✅ Admin atualizado (RESET_ADMIN_PASSWORD=true → senha reposta: bearbet2024)');
+  } else {
+    await pool.query(
+      `INSERT INTO admin_users (username, password_hash, role)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (username) DO NOTHING`,
+      ['admin', passwordHash, 'superadmin']
+    );
+    console.log('  ✅ Usuário admin: criado se não existia (user: admin / pass: bearbet2024)');
+    console.log('  ℹ️  Se o login falhar mas o admin já existia, use RESET_ADMIN_PASSWORD=true uma vez.');
+  }
   console.log('  ⚠️  TROQUE A SENHA APÓS O PRIMEIRO LOGIN!\n');
 
   // Configurações iniciais

@@ -35,6 +35,9 @@ else
 fi
 
 if [ "${RUN_SEED:-}" = "true" ]; then
+  if [ "${RESET_ADMIN_PASSWORD:-}" = "true" ]; then
+    echo "[entrypoint] RESET_ADMIN_PASSWORD=true — a senha do user admin será reposta para bearbet2024"
+  fi
   echo "[entrypoint] RUN_SEED=true — executando seed (admin + settings a partir do .env)"
   node migrations/seed.js
 fi
