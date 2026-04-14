@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bearbet Tracker — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================
+       RESET & VARIABLES
+       ============================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #0a0b0f;
+      --bg-secondary: #12131a;
+      --bg-card: #181920;
+      --bg-card-hover: #1e1f28;
+      --bg-input: #1e1f28;
+      --border: #2a2b36;
+      --border-hover: #3a3b48;
+      --text-primary: #e8e9ed;
+      --text-secondary: #8b8d98;
+      --text-muted: #5c5e6a;
+      --accent: #6c5ce7;
+      --accent-hover: #7e6ff0;
+      --accent-glow: rgba(108, 92, 231, 0.15);
+      --green: #2ed573;
+      --green-bg: rgba(46, 213, 115, 0.1);
+      --red: #ff4757;
+      --red-bg: rgba(255, 71, 87, 0.1);
+      --yellow: #ffa502;
+      --yellow-bg: rgba(255, 165, 2, 0.1);
+      --blue: #3742fa;
+      --blue-bg: rgba(55, 66, 250, 0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.3);
+      --font: 'DM Sans', -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+      --sidebar-width: 260px;
+      --transition: all 0.2s ease;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ============================================
+       SCROLLBAR
+       ============================================ */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+    /* ============================================
+       LOGIN PAGE
+       ============================================ */
+    .login-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--bg-primary);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-page::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+      top: -200px; right: -200px;
+      pointer-events: none;
+    }
+
+    .login-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow);
+    }
+
+    .login-logo {
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .login-logo span { color: var(--accent); }
+
+    .login-subtitle {
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 36px;
+    }
+
+    /* ============================================
+       FORM ELEMENTS
+       ============================================ */
+    .form-group { margin-bottom: 20px; }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 14px;
+      transition: var(--transition);
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-input::placeholder { color: var(--text-muted); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: var(--transition);
+      letter-spacing: 0.2px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      width: 100%;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-sm { padding: 8px 16px; font-size: 13px; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover { border-color: var(--border-hover); color: var(--text-primary); }
+
+    .btn-success { background: var(--green); color: #000; }
+    .btn-danger { background: var(--red); color: #fff; }
+
+    .login-error {
+      background: var(--red-bg);
+      color: var(--red);
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      margin-bottom: 20px;
+      display: none;
+      border: 1px solid rgba(255,71,87,0.2);
+    }
+
+    /* ============================================
+       LAYOUT
+       ============================================ */
+    .app { display: none; min-height: 100vh; }
+    .app.active { display: flex; }
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar-logo {
+      padding: 0 24px;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-logo span { color: var(--accent); }
+
+    .sidebar-version {
+      padding: 0 24px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      font-family: var(--mono);
+    }
+
+    .nav { flex: 1; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 14px;
+      font-weight: 500;
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
+
+    .nav-item.active {
+      color: var(--accent);
+      background: var(--accent-glow);
+      border-left-color: var(--accent);
+    }
+
+    .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .sidebar-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .sidebar-user-avatar {
+      width: 36px; height: 36px;
+      background: var(--accent-glow);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .logout-btn {
+      cursor: pointer;
+      color: var(--text-muted);
+      margin-left: auto;
+      transition: var(--transition);
+    }
+
+    .logout-btn:hover { color: var(--red); }
+
+    .main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 32px;
+      min-height: 100vh;
+    }
+
+    /* ============================================
+       HEADER
+       ============================================ */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .page-description {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* ============================================
+       CARDS / STATS
+       ============================================ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: var(--transition);
+    }
+
+    .stat-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .stat-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    .stat-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .dot-green { background: var(--green); }
+    .dot-red { background: var(--red); }
+    .dot-yellow { background: var(--yellow); }
+    .dot-blue { background: var(--accent); }
+
+    /* ============================================
+       TABLES
+       ============================================ */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      padding: 12px 24px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 14px 24px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      vertical-align: middle;
+    }
+
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* ============================================
+       BADGES
+       ============================================ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-success { background: var(--green-bg); color: var(--green); }
+    .badge-error { background: var(--red-bg); color: var(--red); }
+    .badge-warning { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-info { background: var(--blue-bg); color: var(--accent); }
+    .badge-muted { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+
+    /* ============================================
+       PAGINATION
+       ============================================ */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .pagination-info {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .pagination-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* ============================================
+       FILTERS
+       ============================================ */
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-select {
+      padding: 8px 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .filter-select:focus { border-color: var(--accent); }
+
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 16px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-input:focus { border-color: var(--accent); }
+
+    /* ============================================
+       MODAL
+       ============================================ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 700px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title { font-size: 18px; font-weight: 600; }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 24px;
+      line-height: 1;
+      padding: 4px;
+    }
+
+    .modal-close:hover { color: var(--text-primary); }
+
+    .modal-body { padding: 24px; }
+
+    .detail-row {
+      display: flex;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      gap: 16px;
+    }
+
+    .detail-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-width: 140px;
+      flex-shrink: 0;
+    }
+
+    .detail-value {
+      font-size: 13px;
+      color: var(--text-primary);
+      word-break: break-all;
+      font-family: var(--mono);
+    }
+
+    pre.json-view {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      overflow-x: auto;
+      max-height: 300px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    /* ============================================
+       SETTINGS PAGE
+       ============================================ */
+    .settings-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .settings-section h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .settings-grid .form-group.full { grid-column: 1 / -1; }
+
+    .connection-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .connection-ok { background: var(--green-bg); color: var(--green); }
+    .connection-error { background: var(--red-bg); color: var(--red); }
+
+    /* ============================================
+       TOAST
+       ============================================ */
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      animation: toastIn 0.3s ease;
+      max-width: 400px;
+    }
+
+    .toast-success { background: var(--green); color: #000; }
+    .toast-error { background: var(--red); color: #fff; }
+    .toast-info { background: var(--accent); color: #fff; }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(100px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ============================================
+       LOADING
+       ============================================ */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .spinner {
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============================================
+       PAGE SECTIONS
+       ============================================ */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    .mobile-toggle {
+      display: none;
+      position: fixed;
+      top: 16px; left: 16px;
+      z-index: 200;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      cursor: pointer;
+      color: var(--text-primary);
+    }
+
+    @media (max-width: 768px) {
+      .mobile-toggle { display: block; }
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; padding: 24px 16px; padding-top: 64px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .settings-grid { grid-template-columns: 1fr; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .filters { flex-direction: column; }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ============================================
+       EMPTY STATE
+       ============================================ */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--text-muted);
+    }
+
+    .empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.3; }
+    .empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text-secondary); }
+    .empty-state p { font-size: 13px; }
+
+    /* ============================================
+       MONOSPACE VALUES
+       ============================================ */
+    .mono { font-family: var(--mono); font-size: 12px; }
+    .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .text-green { color: var(--green); }
+    .text-red { color: var(--red); }
+    .text-muted { color: var(--text-muted); }
+    .text-accent { color: var(--accent); }
+    .mt-2 { margin-top: 16px; }
+    .mb-2 { margin-bottom: 16px; }
+    .flex { display: flex; gap: 8px; align-items: center; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================
+     LOGIN
+     ============================================ -->
+<div id="loginPage" class="login-page">
+  <div class="login-box">
+    <div class="login-logo">Bear<span>bet</span></div>
+    <div class="login-subtitle">Tracking Dashboard</div>
+    <div id="loginError" class="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">Usuário</label>
+      <input type="text" id="loginUser" class="form-input" placeholder="admin" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Senha</label>
+      <input type="password" id="loginPass" class="form-input" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="login()">Entrar</button>
+  </div>
+</div>
+
+<!-- ============================================
+     APP
+     ============================================ -->
+<button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+
+<div id="app" class="app">
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-logo">Bear<span>bet</span></div>
+    <div class="sidebar-version">tracker v1.0.0</div>
+    <nav class="nav">
+      <div class="nav-item active" data-page="overview" onclick="navigate('overview')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Visão Geral
+      </div>
+      <div class="nav-item" data-page="events" onclick="navigate('events')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Eventos
+      </div>
+      <div class="nav-item" data-page="users" onclick="navigate('users')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Usuários
+      </div>
+      <div class="nav-item" data-page="webhooks" onclick="navigate('webhooks')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Webhook Logs
+      </div>
+      <div class="nav-item" data-page="settings" onclick="navigate('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Configurações
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="userAvatar">A</div>
+        <div>
+          <div id="userName" style="font-weight:600;color:var(--text-primary)">admin</div>
+          <div style="font-size:11px">Administrador</div>
+        </div>
+        <div class="logout-btn" onclick="logout()" title="Sair">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ========== OVERVIEW ========== -->
+    <div id="page-overview" class="page active">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Visão Geral</h1>
+          <p class="page-description">Resumo do tracking em tempo real</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="loadOverview()">↻ Atualizar</button>
+      </div>
+
+      <div id="statsGrid" class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-dot dot-green"></span> Depósitos</div>
+          <div class="stat-value" id="statPurchases">—</div>
+          <div class="stat-sub" id="statPurchaseValue"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-dot dot-blue"></span> Registros</div>
+          <div class="stat-value" id="statRegistrations">—</div>
+          <div class="stat-sub" id="statRegSub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-dot dot-yellow"></span> Enviados ao Meta</div>
+          <div class="stat-value" id="statSent">—</div>
+          <div class="stat-sub" id="statSentSub"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-dot dot-red"></span> Erros</div>
+          <div class="stat-value" id="statErrors">—</div>
+          <div class="stat-sub" id="statErrorSub"></div>
+        </div>
+      </div>
+
+      <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="stat-card">
+          <div class="stat-label">Total de Usuários</div>
+          <div class="stat-value" id="statTotalUsers">—</div>
+          <div class="stat-sub" id="statTodayUsers"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Receita Total (Depósitos)</div>
+          <div class="stat-value text-green" id="statRevenue">—</div>
+          <div class="stat-sub" id="statRevenueSub"></div>
+        </div>
+      </div>
+
+      <!-- Recent events table -->
+      <div class="card mt-2">
+        <div class="card-header">
+          <span class="card-title">Últimos Eventos</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Evento</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Matching</th>
+                <th>Quando</th>
+              </tr>
+            </thead>
+            <tbody id="recentEventsBody">
+              <tr><td colspan="6" class="loading"><div class="spinner"></div>Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recent errors -->
+      <div class="card mt-2">
+        <div class="card-header">
+          <span class="card-title">Erros Recentes</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Evento</th>
+                <th>Erro</th>
+                <th>Quando</th>
+              </tr>
+            </thead>
+            <tbody id="recentErrorsBody">
+              <tr><td colspan="4" class="text-muted" style="padding:24px;text-align:center;">Nenhum erro recente</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== EVENTS ========== -->
+    <div id="page-events" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Eventos</h1>
+          <p class="page-description">Todos os eventos recebidos e enviados</p>
+        </div>
+      </div>
+
+      <div class="filters">
+        <select id="filterEventType" class="filter-select" onchange="loadEvents()">
+          <option value="">Todos os tipos</option>
+          <option value="Purchase">Purchase (Depósito)</option>
+          <option value="CompleteRegistration">Registration</option>
+          <option value="InitiateCheckout">InitiateCheckout</option>
+        </select>
+        <select id="filterStatus" class="filter-select" onchange="loadEvents()">
+          <option value="">Todos os status</option>
+          <option value="sent">Enviado</option>
+          <option value="queued">Na fila</option>
+          <option value="error">Erro</option>
+        </select>
+        <select id="filterSource" class="filter-select" onchange="loadEvents()">
+          <option value="">Todas as fontes</option>
+          <option value="xgate">XGate</option>
+          <option value="cassino">Cassino</option>
+          <option value="fluxlab">FluxLab</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Evento</th>
+                <th>Usuário</th>
+                <th>Valor</th>
+                <th>Fonte</th>
+                <th>Status</th>
+                <th>Match</th>
+                <th>Data</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="eventsBody">
+              <tr><td colspan="9" class="loading"><div class="spinner"></div>Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="eventsPagination"></div>
+      </div>
+    </div>
+
+    <!-- ========== USERS ========== -->
+    <div id="page-users" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Usuários</h1>
+          <p class="page-description">Usuários trackeados com dados de atribuição</p>
+        </div>
+      </div>
+
+      <div class="filters">
+        <input type="text" id="userSearch" class="search-input" placeholder="Buscar por email, telefone, click_id..." onkeyup="debounce(loadUsers, 500)()">
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>Ext. ID</th>
+                <th>FBC</th>
+                <th>Click ID</th>
+                <th>Fonte</th>
+                <th>UTM Source</th>
+                <th>Cadastro</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody">
+              <tr><td colspan="9" class="loading"><div class="spinner"></div>Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="usersPagination"></div>
+      </div>
+    </div>
+
+    <!-- ========== WEBHOOK LOGS ========== -->
+    <div id="page-webhooks" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Webhook Logs</h1>
+          <p class="page-description">Registro bruto de todos os webhooks recebidos</p>
+        </div>
+      </div>
+
+      <div class="filters">
+        <select id="filterWebhookSource" class="filter-select" onchange="loadWebhooks()">
+          <option value="">Todas as fontes</option>
+          <option value="xgate">XGate</option>
+          <option value="cassino">Cassino</option>
+          <option value="fluxlab">FluxLab</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Fonte</th>
+                <th>Endpoint</th>
+                <th>IP</th>
+                <th>Processado</th>
+                <th>Data</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="webhooksBody">
+              <tr><td colspan="7" class="loading"><div class="spinner"></div>Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination" id="webhooksPagination"></div>
+      </div>
+    </div>
+
+    <!-- ========== SETTINGS ========== -->
+    <div id="page-settings" class="page">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Configurações</h1>
+          <p class="page-description">Configuração do Meta CAPI e opções do sistema</p>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          Meta / Facebook CAPI
+        </h3>
+        <div class="settings-grid">
+          <div class="form-group">
+            <label class="form-label">Pixel ID</label>
+            <input type="text" id="settingPixelId" class="form-input" placeholder="1234567890">
+          </div>
+          <div class="form-group">
+            <label class="form-label">API Version</label>
+            <input type="text" id="settingApiVersion" class="form-input" placeholder="v19.0">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Access Token</label>
+            <input type="password" id="settingAccessToken" class="form-input" placeholder="EAAxxxxxxxx...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Test Event Code (vazio = produção)</label>
+            <input type="text" id="settingTestEventCode" class="form-input" placeholder="TEST12345">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;gap:12px;">
+            <button class="btn btn-ghost btn-sm" onclick="testMeta()">🔌 Testar Conexão</button>
+            <span id="metaConnectionStatus"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>
+          Sistema
+        </h3>
+        <div class="settings-grid">
+          <div class="form-group">
+            <label class="form-label">Modo Debug</label>
+            <select id="settingDebugMode" class="form-input">
+              <option value="false">Desligado</option>
+              <option value="true">Ligado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Janela de Deduplicação (min)</label>
+            <input type="number" id="settingDedup" class="form-input" value="60">
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          URLs dos Webhooks
+        </h3>
+        <div class="form-group">
+          <label class="form-label">XGate</label>
+          <input type="text" class="form-input mono" readonly id="webhookUrlXgate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cassino</label>
+          <input type="text" class="form-input mono" readonly id="webhookUrlCassino">
+        </div>
+        <div class="form-group">
+          <label class="form-label">FluxLab</label>
+          <input type="text" class="form-input mono" readonly id="webhookUrlFluxlab">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:auto" onclick="saveSettings()">Salvar Configurações</button>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">Detalhes</span>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ============================================
+// STATE
+// ============================================
+let token = localStorage.getItem('bb_token') || null;
+let currentPage = 'overview';
+let eventsPage = 1;
+let usersPage = 1;
+let webhooksPage = 1;
+
+const API = '';
+
+// ============================================
+// AUTH
+// ============================================
+async function login() {
+  const username = document.getElementById('loginUser').value;
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Erro ao fazer login';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    token = data.token;
+    localStorage.setItem('bb_token', token);
+    document.getElementById('userName').textContent = data.user.username;
+    document.getElementById('userAvatar').textContent = data.user.username[0].toUpperCase();
+    showApp();
+  } catch (e) {
+    errEl.textContent = 'Erro de conexão com o servidor';
+    errEl.style.display = 'block';
+  }
+}
+
+function logout() {
+  token = null;
+  localStorage.removeItem('bb_token');
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('loginPage').style.display = 'flex';
+}
+
+function showApp() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  loadOverview();
+}
+
+// Enter to login
+document.getElementById('loginPass').addEventListener('keyup', (e) => {
+  if (e.key === 'Enter') login();
+});
+
+// Auto-login if token exists
+if (token) {
+  fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+    .then(r => { if (r.ok) return r.json(); throw new Error(); })
+    .then(d => {
+      document.getElementById('userName').textContent = d.user.username;
+      document.getElementById('userAvatar').textContent = d.user.username[0].toUpperCase();
+      showApp();
+    })
+    .catch(() => { token = null; localStorage.removeItem('bb_token'); });
+}
+
+// ============================================
+// API HELPER
+// ============================================
+async function api(url, options = {}) {
+  const res = await fetch(`${API}${url}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+  if (res.status === 401) { logout(); throw new Error('Sessão expirada'); }
+  return res.json();
+}
+
+// ============================================
+// NAVIGATION
+// ============================================
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+
+  // Load data
+  switch (page) {
+    case 'overview': loadOverview(); break;
+    case 'events': loadEvents(); break;
+    case 'users': loadUsers(); break;
+    case 'webhooks': loadWebhooks(); break;
+    case 'settings': loadSettings(); break;
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ============================================
+// OVERVIEW
+// ============================================
+async function loadOverview() {
+  try {
+    const data = await api('/api/stats');
+    const t = data.totals;
+
+    document.getElementById('statPurchases').textContent = num(t.total_purchases);
+    document.getElementById('statPurchaseValue').textContent = `R$ ${money(t.purchase_value)} em depósitos`;
+    document.getElementById('statRegistrations').textContent = num(t.total_registrations);
+    document.getElementById('statRegSub').textContent = `${num(t.total_initiates)} iniciaram checkout`;
+    document.getElementById('statSent').textContent = num(t.sent_to_meta);
+    document.getElementById('statSentSub').textContent = `de ${num(t.total_events)} eventos totais`;
+    document.getElementById('statErrors').textContent = num(t.errors);
+    document.getElementById('statErrorSub').textContent = t.total_events > 0 ? `${((t.errors / t.total_events) * 100).toFixed(1)}% taxa de erro` : '';
+    document.getElementById('statTotalUsers').textContent = num(data.totalUsers);
+    document.getElementById('statTodayUsers').textContent = `${num(data.todayUsers)} novos hoje`;
+    document.getElementById('statRevenue').textContent = `R$ ${money(t.purchase_value)}`;
+
+    // Recent events
+    const events = await api('/api/events?limit=10');
+    renderRecentEvents(events.events);
+
+    // Errors
+    renderRecentErrors(data.recentErrors);
+  } catch (e) {
+    console.error('Erro ao carregar overview:', e);
+  }
+}
+
+function renderRecentEvents(events) {
+  const tbody = document.getElementById('recentEventsBody');
+  if (!events.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><h3>Nenhum evento ainda</h3><p>Os eventos aparecerão aqui quando os webhooks começarem a chegar.</p></td></tr>';
+    return;
+  }
+  tbody.innerHTML = events.map(e => `
+    <tr>
+      <td><span class="badge ${eventBadge(e.event_name)}">${e.event_name}</span></td>
+      <td class="mono text-muted">${e.event_type}</td>
+      <td>${e.value > 0 ? `<span class="text-green">R$ ${money(e.value)}</span>` : '—'}</td>
+      <td><span class="badge ${statusBadge(e.status)}">${e.status}</span></td>
+      <td class="mono text-muted">${e.matched_by || '—'}</td>
+      <td class="text-muted">${timeAgo(e.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderRecentErrors(errors) {
+  const tbody = document.getElementById('recentErrorsBody');
+  if (!errors.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-muted" style="padding:24px;text-align:center;">Nenhum erro recente ✓</td></tr>';
+    return;
+  }
+  tbody.innerHTML = errors.map(e => `
+    <tr>
+      <td class="mono truncate" style="max-width:150px">${e.event_id}</td>
+      <td><span class="badge ${eventBadge(e.event_name)}">${e.event_name}</span></td>
+      <td class="text-red" style="font-size:12px">${e.meta_response ? JSON.stringify(e.meta_response).substring(0, 80) : '—'}</td>
+      <td class="text-muted">${timeAgo(e.created_at)}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================
+// EVENTS
+// ============================================
+async function loadEvents(page = 1) {
+  eventsPage = page;
+  const type = document.getElementById('filterEventType').value;
+  const status = document.getElementById('filterStatus').value;
+  const source = document.getElementById('filterSource').value;
+
+  let url = `/api/events?page=${page}&limit=30`;
+  if (type) url += `&eventType=${type}`;
+  if (status) url += `&status=${status}`;
+  if (source) url += `&source=${source}`;
+
+  try {
+    const data = await api(url);
+    const tbody = document.getElementById('eventsBody');
+
+    if (!data.events.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><h3>Nenhum evento encontrado</h3></td></tr>';
+      document.getElementById('eventsPagination').innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = data.events.map(e => `
+      <tr>
+        <td class="mono truncate" style="max-width:120px" title="${e.event_id}">${e.event_id.substring(0, 12)}...</td>
+        <td><span class="badge ${eventBadge(e.event_name)}">${e.event_name}</span></td>
+        <td class="mono">${e.email || e.external_id || '—'}</td>
+        <td>${e.value > 0 ? `<span class="text-green">R$ ${money(e.value)}</span>` : '—'}</td>
+        <td><span class="badge badge-muted">${e.source}</span></td>
+        <td><span class="badge ${statusBadge(e.status)}">${e.status}</span></td>
+        <td class="mono text-muted">${e.matched_by || '—'}</td>
+        <td class="text-muted">${timeAgo(e.created_at)}</td>
+        <td class="flex">
+          <button class="btn btn-ghost btn-sm" onclick="viewEventLogs('${e.event_id}')">🔍</button>
+          ${e.status === 'error' ? `<button class="btn btn-ghost btn-sm" onclick="retryEvent('${e.event_id}')">↻</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+
+    renderPagination('eventsPagination', data, loadEvents);
+  } catch (e) {
+    console.error('Erro ao carregar eventos:', e);
+  }
+}
+
+async function viewEventLogs(eventId) {
+  try {
+    const data = await api(`/api/events/${eventId}/logs`);
+    const ev = data.event;
+
+    let html = '<div style="margin-bottom:20px">';
+    html += detailRow('Event ID', ev.event_id);
+    html += detailRow('Tipo', `${ev.event_name} (${ev.event_type})`);
+    html += detailRow('Status', `<span class="badge ${statusBadge(ev.status)}">${ev.status}</span>`);
+    html += detailRow('Valor', ev.value > 0 ? `R$ ${money(ev.value)}` : '—');
+    html += detailRow('Fonte', ev.source);
+    html += detailRow('Matching', ev.matched_by || '—');
+    html += detailRow('Email', ev.email || '—');
+    html += detailRow('FBC', ev.fbc || '—');
+    html += detailRow('FBP', ev.fbp || '—');
+    html += detailRow('Click ID', ev.click_id || '—');
+    html += detailRow('IP', ev.user_ip || ev.ip_address || '—');
+    html += detailRow('Data', formatDate(ev.created_at));
+    html += '</div>';
+
+    if (data.logs.length) {
+      html += '<h4 style="margin-bottom:12px;font-size:14px;">Log de Envios</h4>';
+      data.logs.forEach(log => {
+        html += `<div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;">
+          <div class="flex" style="margin-bottom:8px">
+            <span class="badge ${log.status === 'success' ? 'badge-success' : 'badge-error'}">${log.action}</span>
+            <span class="text-muted" style="font-size:11px">${formatDate(log.created_at)} · ${log.duration_ms}ms · tentativa #${log.attempt_number}</span>
+          </div>
+          ${log.error_message ? `<div class="text-red" style="font-size:12px;margin-bottom:8px">${log.error_message}</div>` : ''}
+          ${log.response_payload ? `<pre class="json-view">${JSON.stringify(log.response_payload, null, 2)}</pre>` : ''}
+        </div>`;
+      });
+    }
+
+    html += '<h4 style="margin:16px 0 12px;font-size:14px;">Payload Raw</h4>';
+    html += `<pre class="json-view">${JSON.stringify(ev.raw_payload, null, 2)}</pre>`;
+
+    openModal('Detalhes do Evento', html);
+  } catch (e) {
+    toast('Erro ao carregar logs', 'error');
+  }
+}
+
+async function retryEvent(eventId) {
+  try {
+    await api(`/api/events/${eventId}/retry`, { method: 'POST' });
+    toast('Evento re-enfileirado para envio', 'success');
+    loadEvents(eventsPage);
+  } catch (e) {
+    toast('Erro ao reprocessar evento', 'error');
+  }
+}
+
+// ============================================
+// USERS
+// ============================================
+async function loadUsers(page = 1) {
+  usersPage = page;
+  const search = document.getElementById('userSearch').value;
+  let url = `/api/users?page=${page}&limit=30`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+
+  try {
+    const data = await api(url);
+    const tbody = document.getElementById('usersBody');
+
+    if (!data.users.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><h3>Nenhum usuário encontrado</h3></td></tr>';
+      document.getElementById('usersPagination').innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = data.users.map(u => `
+      <tr>
+        <td class="mono">${u.id}</td>
+        <td>${u.email || '<span class="text-muted">—</span>'}</td>
+        <td class="mono">${u.external_id || '—'}</td>
+        <td class="mono truncate" style="max-width:100px" title="${u.fbc || ''}">${u.fbc ? '✓' : '<span class="text-muted">—</span>'}</td>
+        <td class="mono truncate" style="max-width:100px" title="${u.click_id || ''}">${u.click_id ? '✓' : '<span class="text-muted">—</span>'}</td>
+        <td><span class="badge badge-muted">${u.source || '—'}</span></td>
+        <td class="mono">${u.utm_source || '—'}</td>
+        <td class="text-muted">${timeAgo(u.created_at)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="viewUser(${u.id})">🔍</button></td>
+      </tr>
+    `).join('');
+
+    renderPagination('usersPagination', data, loadUsers);
+  } catch (e) {
+    console.error('Erro ao carregar usuários:', e);
+  }
+}
+
+async function viewUser(id) {
+  try {
+    const u = await api(`/api/users/${id}`);
+
+    let html = '<div style="margin-bottom:20px">';
+    html += detailRow('ID', u.id);
+    html += detailRow('External ID', u.external_id || '—');
+    html += detailRow('Email', u.email || '—');
+    html += detailRow('Telefone', u.phone || '—');
+    html += detailRow('Nome', [u.first_name, u.last_name].filter(Boolean).join(' ') || '—');
+    html += detailRow('País', u.country || '—');
+    html += detailRow('FBC', u.fbc || '—');
+    html += detailRow('FBP', u.fbp || '—');
+    html += detailRow('Click ID', u.click_id || '—');
+    html += detailRow('IP', u.ip_address || '—');
+    html += detailRow('User Agent', u.user_agent || '—');
+    html += detailRow('UTM Source', u.utm_source || '—');
+    html += detailRow('UTM Campaign', u.utm_campaign || '—');
+    html += detailRow('Fonte', u.source || '—');
+    html += detailRow('Cadastro', formatDate(u.created_at));
+    html += '</div>';
+
+    if (u.events && u.events.length) {
+      html += '<h4 style="margin-bottom:12px;font-size:14px;">Eventos do Usuário</h4>';
+      html += '<table style="width:100%"><thead><tr><th>Evento</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody>';
+      u.events.forEach(e => {
+        html += `<tr>
+          <td><span class="badge ${eventBadge(e.event_name)}">${e.event_name}</span></td>
+          <td>${e.value > 0 ? `R$ ${money(e.value)}` : '—'}</td>
+          <td><span class="badge ${statusBadge(e.status)}">${e.status}</span></td>
+          <td class="text-muted">${timeAgo(e.created_at)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+    }
+
+    openModal('Detalhes do Usuário', html);
+  } catch (e) {
+    toast('Erro ao carregar usuário', 'error');
+  }
+}
+
+// ============================================
+// WEBHOOK LOGS
+// ============================================
+async function loadWebhooks(page = 1) {
+  webhooksPage = page;
+  const source = document.getElementById('filterWebhookSource').value;
+  let url = `/api/webhook-logs?page=${page}&limit=30`;
+  if (source) url += `&source=${source}`;
+
+  try {
+    const data = await api(url);
+    const tbody = document.getElementById('webhooksBody');
+
+    if (!data.logs.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><h3>Nenhum webhook recebido</h3></td></tr>';
+      document.getElementById('webhooksPagination').innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = data.logs.map(l => `
+      <tr>
+        <td class="mono">${l.id}</td>
+        <td><span class="badge badge-muted">${l.source}</span></td>
+        <td class="mono">${l.endpoint}</td>
+        <td class="mono text-muted">${l.ip_address || '—'}</td>
+        <td>${l.processed ? '<span class="badge badge-success">Sim</span>' : '<span class="badge badge-warning">Não</span>'}</td>
+        <td class="text-muted">${timeAgo(l.created_at)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="viewWebhookLog(${l.id})">🔍</button></td>
+      </tr>
+    `).join('');
+
+    renderPagination('webhooksPagination', data, loadWebhooks);
+  } catch (e) {
+    console.error('Erro ao carregar webhook logs:', e);
+  }
+}
+
+async function viewWebhookLog(id) {
+  try {
+    const l = await api(`/api/webhook-logs/${id}`);
+    let html = '';
+    html += detailRow('ID', l.id);
+    html += detailRow('Fonte', l.source);
+    html += detailRow('Endpoint', l.endpoint);
+    html += detailRow('Método', l.method);
+    html += detailRow('IP', l.ip_address || '—');
+    html += detailRow('Processado', l.processed ? 'Sim' : 'Não');
+    html += detailRow('Data', formatDate(l.created_at));
+    if (l.error_message) html += detailRow('Erro', `<span class="text-red">${l.error_message}</span>`);
+    html += '<h4 style="margin:20px 0 12px;font-size:14px;">Headers</h4>';
+    html += `<pre class="json-view">${JSON.stringify(l.headers, null, 2)}</pre>`;
+    html += '<h4 style="margin:20px 0 12px;font-size:14px;">Body</h4>';
+    html += `<pre class="json-view">${JSON.stringify(l.body, null, 2)}</pre>`;
+
+    openModal('Webhook Log #' + id, html);
+  } catch (e) {
+    toast('Erro ao carregar log', 'error');
+  }
+}
+
+// ============================================
+// SETTINGS
+// ============================================
+async function loadSettings() {
+  try {
+    const data = await api('/api/settings');
+    const baseUrl = window.location.origin;
+
+    if (data.meta_pixel_id) document.getElementById('settingPixelId').value = data.meta_pixel_id.raw || '';
+    if (data.meta_access_token) document.getElementById('settingAccessToken').value = data.meta_access_token.raw || '';
+    if (data.meta_api_version) document.getElementById('settingApiVersion').value = data.meta_api_version.raw || 'v19.0';
+    if (data.meta_test_event_code) document.getElementById('settingTestEventCode').value = data.meta_test_event_code.raw || '';
+    if (data.debug_mode) document.getElementById('settingDebugMode').value = data.debug_mode.raw || 'false';
+    if (data.deduplication_window_minutes) document.getElementById('settingDedup').value = data.deduplication_window_minutes.raw || '60';
+
+    document.getElementById('webhookUrlXgate').value = `${baseUrl}/webhook/xgate`;
+    document.getElementById('webhookUrlCassino').value = `${baseUrl}/webhook/cassino`;
+    document.getElementById('webhookUrlFluxlab').value = `${baseUrl}/webhook/fluxlab`;
+  } catch (e) {
+    console.error('Erro ao carregar settings:', e);
+  }
+}
+
+async function saveSettings() {
+  try {
+    await api('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        meta_pixel_id: document.getElementById('settingPixelId').value,
+        meta_access_token: document.getElementById('settingAccessToken').value,
+        meta_api_version: document.getElementById('settingApiVersion').value,
+        meta_test_event_code: document.getElementById('settingTestEventCode').value,
+        debug_mode: document.getElementById('settingDebugMode').value,
+        deduplication_window_minutes: document.getElementById('settingDedup').value,
+      }),
+    });
+    toast('Configurações salvas!', 'success');
+  } catch (e) {
+    toast('Erro ao salvar configurações', 'error');
+  }
+}
+
+async function testMeta() {
+  const el = document.getElementById('metaConnectionStatus');
+  el.innerHTML = '<span class="text-muted">Testando...</span>';
+  try {
+    const data = await api('/api/settings/test-meta', { method: 'POST' });
+    if (data.success) {
+      el.innerHTML = `<span class="connection-status connection-ok">✓ Conectado — ${data.pixelName || data.pixelId}</span>`;
+    } else {
+      el.innerHTML = `<span class="connection-status connection-error">✗ ${data.error}</span>`;
+    }
+  } catch (e) {
+    el.innerHTML = '<span class="connection-status connection-error">✗ Erro de conexão</span>';
+  }
+}
+
+// ============================================
+// HELPERS
+// ============================================
+function num(n) {
+  return parseInt(n || 0).toLocaleString('pt-BR');
+}
+
+function money(v) {
+  return parseFloat(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function timeAgo(dateStr) {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return 'agora';
+  if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d atrás`;
+  return date.toLocaleDateString('pt-BR');
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleString('pt-BR');
+}
+
+function statusBadge(status) {
+  const map = { sent: 'badge-success', queued: 'badge-info', error: 'badge-error', received: 'badge-warning' };
+  return map[status] || 'badge-muted';
+}
+
+function eventBadge(name) {
+  const map = { Purchase: 'badge-success', CompleteRegistration: 'badge-info', InitiateCheckout: 'badge-warning' };
+  return map[name] || 'badge-muted';
+}
+
+function detailRow(label, value) {
+  return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${value}</span></div>`;
+}
+
+function renderPagination(containerId, data, loadFn) {
+  const el = document.getElementById(containerId);
+  const { page, totalPages, total } = data;
+  el.innerHTML = `
+    <span class="pagination-info">${total} registros · Página ${page} de ${totalPages}</span>
+    <div class="pagination-buttons">
+      <button class="btn btn-ghost btn-sm" ${page <= 1 ? 'disabled' : ''} onclick="(${loadFn.name})(${page - 1})">← Anterior</button>
+      <button class="btn btn-ghost btn-sm" ${page >= totalPages ? 'disabled' : ''} onclick="(${loadFn.name})(${page + 1})">Próxima →</button>
+    </div>
+  `;
+}
+
+function openModal(title, bodyHtml) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('active');
+}
+
+function toast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = message;
+  container.appendChild(el);
+  setTimeout(() => { el.remove(); }, 4000);
+}
+
+function debounce(fn, delay) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+</body>
+</html>

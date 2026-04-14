@@ -1,0 +1,31 @@
+{
+  "name": "bearbet-tracker",
+  "version": "1.0.0",
+  "description": "Sistema de tracking server-side para Bearbet - Meta Ads CAPI",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "migrate": "node migrations/run.js",
+    "seed": "node migrations/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pg": "^8.12.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "axios": "^1.6.7",
+    "crypto-js": "^4.2.0",
+    "uuid": "^9.0.0",
+    "bull": "^4.12.2",
+    "express-rate-limit": "^7.1.5",
+    "winston": "^3.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+}
