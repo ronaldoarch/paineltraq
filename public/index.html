@@ -1092,7 +1092,7 @@
             <input type="text" id="settingTestEventCode" class="form-input" placeholder="TEST12345">
           </div>
           <div class="form-group" style="display:flex;align-items:flex-end;gap:12px;">
-            <button class="btn btn-ghost btn-sm" onclick="testMeta()">🔌 Testar Conexão</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="testMeta()">🔌 Testar Conexão</button>
             <span id="metaConnectionStatus"></span>
           </div>
         </div>
@@ -1130,6 +1130,18 @@
         <div class="form-group">
           <label class="form-label">Cassino</label>
           <input type="text" class="form-input mono" readonly id="webhookUrlCassino">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Secret do webhook Cassino</label>
+          <p class="page-description" style="margin-bottom:10px;font-size:13px;">
+            Opcional. Se gerar um secret aqui, o backoffice do cassino deve enviar o mesmo valor no header
+            <code style="color:var(--accent)">X-Webhook-Secret</code> ou em <code style="color:var(--accent)">Authorization: Bearer …</code>.
+            Se também existir <code>WEBHOOK_SECRET_CASSINO</code> no servidor, esse valor tem prioridade.
+          </p>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+            <span id="cassinoWebhookSecretStatus" class="text-muted" style="font-size:13px;"></span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="generateCassinoWebhookSecret()">Gerar novo secret</button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">FluxLab</label>
@@ -1246,8 +1258,15 @@ async function api(url, options = {}) {
       ...options.headers,
     },
   });
-  if (res.status === 401) { logout(); throw new Error('Sessão expirada'); }
-  return res.json();
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    logout();
+    throw new Error('Sessão expirada');
+  }
+  if (!res.ok) {
+    throw new Error(data.error || `Erro HTTP ${res.status}`);
+  }
+  return data;
 }
 
 // ============================================
@@ -1586,21 +1605,41 @@ async function viewWebhookLog(id) {
 // ============================================
 // SETTINGS
 // ============================================
+function settingFieldValue(s) {
+  if (!s) return '';
+  if (s.value != null && s.value !== '') return String(s.value);
+  return '';
+}
+
 async function loadSettings() {
   try {
     const data = await api('/api/settings');
     const baseUrl = window.location.origin;
 
-    if (data.meta_pixel_id) document.getElementById('settingPixelId').value = data.meta_pixel_id.raw || '';
-    if (data.meta_access_token) document.getElementById('settingAccessToken').value = data.meta_access_token.raw || '';
-    if (data.meta_api_version) document.getElementById('settingApiVersion').value = data.meta_api_version.raw || 'v19.0';
-    if (data.meta_test_event_code) document.getElementById('settingTestEventCode').value = data.meta_test_event_code.raw || '';
-    if (data.debug_mode) document.getElementById('settingDebugMode').value = data.debug_mode.raw || 'false';
-    if (data.deduplication_window_minutes) document.getElementById('settingDedup').value = data.deduplication_window_minutes.raw || '60';
+    document.getElementById('settingPixelId').value = settingFieldValue(data.meta_pixel_id);
+    const at = document.getElementById('settingAccessToken');
+    at.value = '';
+    at.placeholder = data.meta_access_token?.configured
+      ? '(token salvo — deixe em branco para manter)'
+      : 'EAAxxxxxxxx...';
+    document.getElementById('settingApiVersion').value =
+      settingFieldValue(data.meta_api_version) || 'v19.0';
+    document.getElementById('settingTestEventCode').value = settingFieldValue(data.meta_test_event_code);
+    const dbg = settingFieldValue(data.debug_mode);
+    document.getElementById('settingDebugMode').value = dbg === 'true' ? 'true' : 'false';
+    document.getElementById('settingDedup').value =
+      settingFieldValue(data.deduplication_window_minutes) || '60';
 
     document.getElementById('webhookUrlXgate').value = `${baseUrl}/webhook/xgate`;
     document.getElementById('webhookUrlCassino').value = `${baseUrl}/webhook/cassino`;
     document.getElementById('webhookUrlFluxlab').value = `${baseUrl}/webhook/fluxlab`;
+
+    const st = document.getElementById('cassinoWebhookSecretStatus');
+    if (st) {
+      st.textContent = data.webhook_secret_cassino?.configured
+        ? 'Estado: secret configurado (gerar de novo substitui o anterior).'
+        : 'Estado: sem secret — webhook aceita qualquer chamada até gerar um secret ou definir WEBHOOK_SECRET_CASSINO no servidor.';
+    }
   } catch (e) {
     console.error('Erro ao carregar settings:', e);
   }
@@ -1608,20 +1647,47 @@ async function loadSettings() {
 
 async function saveSettings() {
   try {
+    const body = {
+      meta_pixel_id: document.getElementById('settingPixelId').value,
+      meta_api_version: document.getElementById('settingApiVersion').value,
+      meta_test_event_code: document.getElementById('settingTestEventCode').value,
+      debug_mode: document.getElementById('settingDebugMode').value,
+      deduplication_window_minutes: document.getElementById('settingDedup').value,
+    };
+    const tok = document.getElementById('settingAccessToken').value.trim();
+    if (tok) body.meta_access_token = tok;
+
     await api('/api/settings', {
       method: 'PUT',
-      body: JSON.stringify({
-        meta_pixel_id: document.getElementById('settingPixelId').value,
-        meta_access_token: document.getElementById('settingAccessToken').value,
-        meta_api_version: document.getElementById('settingApiVersion').value,
-        meta_test_event_code: document.getElementById('settingTestEventCode').value,
-        debug_mode: document.getElementById('settingDebugMode').value,
-        deduplication_window_minutes: document.getElementById('settingDedup').value,
-      }),
+      body: JSON.stringify(body),
     });
     toast('Configurações salvas!', 'success');
+    loadSettings();
   } catch (e) {
-    toast('Erro ao salvar configurações', 'error');
+    toast(e.message || 'Erro ao salvar configurações', 'error');
+  }
+}
+
+async function generateCassinoWebhookSecret() {
+  if (
+    !confirm(
+      'Isto gera um novo secret e invalida o anterior. Atualize o painel do cassino com o novo valor ou os webhooks passam a falhar com 401. Continuar?',
+    )
+  ) {
+    return;
+  }
+  try {
+    const data = await api('/api/settings/webhook-secrets/generate', {
+      method: 'POST',
+      body: JSON.stringify({ target: 'cassino' }),
+    });
+    const html = `<p>${data.message}</p>
+      <p style="margin:12px 0 6px;font-size:13px;">Cole no cassino o header <strong>${data.headerName}</strong> com o valor abaixo (ou use <strong>Authorization: Bearer</strong>).</p>
+      <pre class="json-view" style="user-select:all;word-break:break-all">${data.secret}</pre>`;
+    openModal('Secret do webhook Cassino', html);
+    loadSettings();
+  } catch (e) {
+    toast(e.message || 'Erro ao gerar secret', 'error');
   }
 }
 

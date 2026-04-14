@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -244,6 +245,14 @@ router.put('/settings', authMiddleware, async (req, res) => {
       }
     }
 
+    // Não apagar o access token no BD quando o campo vem vazio (UI não envia o valor mascarado)
+    if (
+      updates.meta_access_token !== undefined &&
+      String(updates.meta_access_token).trim() === ''
+    ) {
+      delete updates.meta_access_token;
+    }
+
     await settingsService.setMultiple(updates);
     logger.info('[API] Settings atualizadas', { keys: Object.keys(updates) });
 
@@ -264,6 +273,38 @@ router.post('/settings/test-meta', authMiddleware, async (req, res) => {
   } catch (error) {
     logger.error('[API] Erro ao testar Meta', { error: error.message });
     res.status(500).json({ error: 'Erro ao testar conexão' });
+  }
+});
+
+/**
+ * POST /api/settings/webhook-secrets/generate
+ * Gera e grava secret para validar webhooks do cassino (X-Webhook-Secret ou Authorization Bearer).
+ */
+router.post('/settings/webhook-secrets/generate', authMiddleware, async (req, res) => {
+  try {
+    const { target } = req.body || {};
+    if (target !== 'cassino') {
+      return res.status(400).json({ error: 'target inválido (use: cassino)' });
+    }
+
+    const secret = crypto.randomBytes(32).toString('hex');
+    await settingsService.set(
+      'webhook_secret_cassino',
+      secret,
+      'Secret para validar webhooks do cassino (X-Webhook-Secret ou Authorization Bearer)',
+    );
+    logger.info('[API] webhook_secret_cassino regenerado');
+
+    res.json({
+      success: true,
+      secret,
+      headerName: 'X-Webhook-Secret',
+      message:
+        'Copie o secret agora. Ele não volta a aparecer no painel; guarde no backoffice do cassino.',
+    });
+  } catch (error) {
+    logger.error('[API] Erro ao gerar webhook secret', { error: error.message });
+    res.status(500).json({ error: 'Erro ao gerar secret' });
   }
 });
 

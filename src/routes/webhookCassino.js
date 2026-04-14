@@ -2,10 +2,43 @@ const express = require('express');
 const router = express.Router();
 const eventService = require('../services/eventService');
 const webhookLogger = require('../middleware/webhookLogger');
+const settingsService = require('../services/settingsService');
 const logger = require('../config/logger');
 
 // Logar todos os webhooks do cassino
 router.use(webhookLogger('cassino'));
+
+/**
+ * Se WEBHOOK_SECRET_CASSINO (env) ou webhook_secret_cassino (BD) existir, exige header ou Bearer.
+ */
+async function verifyCassinoWebhookSecret(req, res, next) {
+  try {
+    const envSecret = process.env.WEBHOOK_SECRET_CASSINO?.trim();
+    const dbSecret = String((await settingsService.get('webhook_secret_cassino')) || '').trim();
+    const secret = envSecret || dbSecret;
+    if (!secret) return next();
+
+    const header =
+      req.get('x-webhook-secret') ||
+      req.get('x-cassino-webhook-secret') ||
+      req.get('x-webhook-token');
+    const auth = req.get('authorization');
+    const bearer = auth?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    if ((header && header === secret) || (bearer && bearer === secret)) {
+      return next();
+    }
+
+    logger.warn('[Cassino Webhook] Secret inválida ou ausente');
+    return res.status(401).json({
+      error: 'Unauthorized',
+      hint:
+        'Envie o mesmo secret no header X-Webhook-Secret ou Authorization: Bearer <secret>. Gere o valor em Configurações ou defina WEBHOOK_SECRET_CASSINO no servidor.',
+    });
+  } catch (err) {
+    logger.error('[Cassino Webhook] Erro ao validar secret', { error: err.message });
+    return res.status(500).json({ error: 'internal_error' });
+  }
+}
 
 /**
  * POST /webhook/cassino
@@ -32,7 +65,7 @@ router.use(webhookLogger('cassino'));
  *   }
  * }
  */
-router.post('/', async (req, res) => {
+router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
   try {
     const payload = req.body;
     const eventType = payload.event || payload.type || '';

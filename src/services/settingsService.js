@@ -38,14 +38,17 @@ class SettingsService {
   }
 
   /**
-   * Retorna configurações seguras (sem tokens) para o frontend
+   * Retorna configurações seguras (sem tokens/secrets em claro) para o frontend
    */
   async getSafe() {
     const all = await this.getAll();
     const safe = {};
     for (const [key, data] of Object.entries(all)) {
+      const isSecretField =
+        key.includes('secret') || key.includes('token') || key.includes('password');
       safe[key] = {
-        value: data.value, // já está redacted se necessário
+        value: isSecretField ? '' : data.value,
+        configured: isSecretField ? Boolean(data.raw?.trim()) : undefined,
         description: data.description,
         updated_at: data.updated_at,
       };
