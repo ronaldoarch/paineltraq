@@ -13,6 +13,10 @@ services:
       TRUST_PROXY: ${TRUST_PROXY:-true}
       # Fixa a porta: o Coolify costuma injetar PORT=3000; o Nginx e o expose usam 3001.
       PORT: "3001"
+      # Coolify/Traefik: gera rota para a porta 3001 do container (evita 504 se o proxy assumir 80).
+      # Ref: https://coolify.io/docs/knowledge-base/docker/compose#coolify-s-magic-environment-variables
+      SERVICE_URL_APP_3001: "${SERVICE_URL_APP_3001:-}"
+      SERVICE_FQDN_APP_3001: "${SERVICE_FQDN_APP_3001:-}"
       # Obrigatório na rede Docker (Coolify às vezes injeta DB_HOST=localhost no .env)
       DB_HOST: postgres
       REDIS_HOST: redis
@@ -101,6 +105,10 @@ services:
       - certbot_data:/var/www/certbot:ro
     depends_on:
       - app
+    environment:
+      # Traefik → Nginx escuta HTTP na 80 dentro do container
+      SERVICE_URL_NGINX_80: "${SERVICE_URL_NGINX_80:-}"
+      SERVICE_FQDN_NGINX_80: "${SERVICE_FQDN_NGINX_80:-}"
     networks:
       - bearbet-network
 

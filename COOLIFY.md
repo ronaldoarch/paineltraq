@@ -67,11 +67,18 @@ Cadastre URLs públicas **HTTPS** do Coolify, por exemplo:
 
 ## Problemas comuns no Coolify
 
+### **504 Gateway Timeout** / Traefik na porta errada
+
+Se o app ouve em **3001** (stack com `docker-compose.yml`) ou **3000** (`coolify-compose.yml`), o Traefik **não** pode assumir a porta **80** do container.
+
+1. **No compose do repositório** já estão as variáveis mágicas `SERVICE_URL_APP_3001` / `SERVICE_FQDN_APP_3001` (stack com Nginx) e `SERVICE_URL_APP_3000` (`coolify-compose.yml`), para o Coolify gerar o proxy para a porta certa — ver [Docker Compose no Coolify](https://coolify.io/docs/knowledge-base/docker/compose#domains) e [variáveis mágicas](https://coolify.io/docs/knowledge-base/environment-variables#magic-environment-variables-docker-compose).
+2. **Alternativa na UI:** no domínio do serviço `app`, usar `https://seu-fqdn:3001` (a `:3001` indica ao Coolify **só** a porta interna; o site público continua em HTTPS normal). Idem **`:80`** para o **nginx**, se necessário.
+
 ### `address already in use` (portas **80**, **8080**, **3001**, etc.)
 
 No Coolify as portas **80** e **8080** do host costumam estar com o **Traefik** ou outras stacks. O `docker-compose.yml` **não publica** portas no host para `app`, `nginx`, `postgres` nem `redis` — só **`expose`** na rede interna; o proxy do Coolify encaminha para o serviço (ex.: **nginx**, porta de container **80**).
 
-Na UI do recurso (**Domínios** / **Portas**), associe o domínio ao serviço **nginx** na porta **80** do *container* (não confundir com publicação no host).
+Na UI do recurso (**Domínios** / **Portas**), associe o domínio ao serviço **nginx** na porta **80** do *container* (não confundir com publicação no host). O compose inclui `SERVICE_URL_NGINX_80` para alinhar o Traefik ao **nginx** na **80**.
 
 ### Erro ao montar **`nginx.conf`** (“directory onto a file” / `not a directory`)
 
