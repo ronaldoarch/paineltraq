@@ -11,6 +11,9 @@ services:
     env_file: .env
     environment:
       TRUST_PROXY: ${TRUST_PROXY:-true}
+      # Obrigatório na rede Docker (Coolify às vezes injeta DB_HOST=localhost no .env)
+      DB_HOST: postgres
+      REDIS_HOST: redis
     # Sem publicar 3001 no host: evita "address already in use" no Coolify e em
     # servidores com várias stacks. O Nginx acessa app:3001 na rede interna.
     # Acesso externo: no Coolify o proxy fala com app/nginx na rede Docker (sem porta no host).

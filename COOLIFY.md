@@ -79,6 +79,12 @@ O Coolify grava dados em `/data/coolify/applications/.../`. Bind-mount de **arqu
 
 **Correção no repositório:** o serviço **nginx** passa a ser **build** a partir de `nginx/Dockerfile`, que copia `nginx.conf` **para dentro da imagem** — não há mais mount do arquivo no host.
 
+### Migrações com `ECONNREFUSED 127.0.0.1:5432`
+
+O app estava a usar **`DB_HOST=localhost`** (valor comum no `.env` gerado pelo Coolify). Dentro do container o Postgres é o serviço **`postgres`**, não o localhost.
+
+O `docker-compose.yml` força **`DB_HOST=postgres`** e **`REDIS_HOST=redis`** no serviço `app`, e o entrypoint **espera** o Postgres antes das migrações.
+
 ### `Bind for 0.0.0.0:8080 failed: port is already allocated`
 
 Outro recurso no mesmo servidor pode estar a usar **8080** no host. O compose **já não mapeia** Nginx nem app para o host; se ainda vir este erro, confirme que o deploy usa o **`docker-compose.yml` atual** do Git e remova containers antigos do mesmo projeto no servidor.
