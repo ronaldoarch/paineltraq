@@ -114,6 +114,11 @@ app.use(
 // Servir dashboard (frontend estático)
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Sem ficheiro em public/ — evita servir o HTML inteiro como "favicon" (200 + 60k nos logs)
+app.get('/favicon.ico', (_req, res) => {
+  res.status(204).end();
+});
+
 // Qualquer rota não encontrada serve o index.html (SPA)
 app.get('*', (req, res) => {
   // Se não é uma rota de API ou webhook, servir o dashboard
