@@ -12,6 +12,29 @@ router.use(webhookLogger('cassino'));
 const CASSINO_SECRET_CACHE_TTL_MS = 30_000;
 let cassinoDbSecretCache = { value: '', loadedAt: 0 };
 
+/** Eventos Meta System / cassino aceites (match exacto; antes falhava em strings com pontos). */
+function isCassinoRelevantEvent(eventType) {
+  const t = String(eventType || '').toLowerCase().trim();
+  const allowed = new Set([
+    'user.register',
+    'payment.deposit.started',
+    'payment.deposit.completed',
+    'register',
+    'deposit_started',
+    'deposit_completed',
+  ]);
+  if (allowed.has(t)) return true;
+  const compact = t.replace(/[^a-z0-9]/gi, '');
+  const aliases = [
+    'userregister',
+    'paymentdepositstarted',
+    'paymentdepositcompleted',
+    'depositstarted',
+    'depositcompleted',
+  ];
+  return aliases.includes(compact);
+}
+
 async function resolveCassinoSecretFromDb() {
   const now = Date.now();
   if (now - cassinoDbSecretCache.loadedAt < CASSINO_SECRET_CACHE_TTL_MS) {
@@ -91,21 +114,9 @@ async function verifyCassinoWebhookSecret(req, res, next) {
  * - payment.deposit.started
  * - payment.deposit.completed
  * 
- * Payload esperado:
- * {
- *   "event": "user.register",
- *   "data": {
- *     "user_id": "...",
- *     "email": "...",
- *     "phone": "...",
- *     "tracking": {
- *       "utm_source": "facebook",
- *       "fbc": "...",
- *       "fbp": "...",
- *       "click_id": "..."
- *     }
- *   }
- * }
+ * Meta System — exemplos:
+ * - user.register: data.userId, fullName, tracking (fbc, utmSource / utm_source, …)
+ * - payment.deposit.completed: data.amount, currency, transactionId, tracking.ga_client_id, ip_address, …
  */
 router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
   const mark = require('../middleware/webhookLogger').markWebhookLog;
@@ -118,17 +129,7 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
       userId: payload.data?.user_id || payload.data?.userId || 'N/A',
     });
 
-    // Verificar se é um evento relevante
-    const relevantEvents = [
-      'user.register',
-      'payment.deposit.started',
-      'payment.deposit.completed',
-      'register',
-      'deposit_started',
-      'deposit_completed',
-    ];
-
-    if (!relevantEvents.some(e => eventType.toLowerCase().includes(e.replace('.', '')))) {
+    if (!isCassinoRelevantEvent(eventType)) {
       logger.info('[Cassino Webhook] Evento ignorado', { event: eventType });
       await mark(req.webhookLogId, false, 'Ignorado: tipo de evento não mapeado para CAPI');
       return res.status(200).json({ received: true, processed: false, reason: 'event_not_relevant' });
@@ -146,9 +147,9 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
       });
     }
 
-    // Extrair dados (snake_case legado + camelCase Meta System)
+    // Extrair dados (snake_case legado + camelCase Meta System; depósito inclui transactionId, amount, tracking.*)
     const data = payload.data || payload;
-    const tracking = data.tracking || data.meta || data.metadata || {};
+    const tracking = data.tracking || data.meta || {};
     const fullName = data.fullName || data.name || null;
     const nameParts = fullName ? String(fullName).trim().split(/\s+/) : [];
 
@@ -165,10 +166,20 @@ router.post('/', verifyCassinoWebhookSecret, async (req, res) => {
       fbc: tracking.fbc || data.fbc || null,
       fbp: tracking.fbp || data.fbp || null,
       click_id:
-        tracking.click_id || tracking.fbclid || tracking.gclid || tracking.ttclid || data.click_id || null,
+        tracking.click_id ||
+        tracking.fbclid ||
+        tracking.gclid ||
+        tracking.ga_client_id ||
+        tracking.gaClientId ||
+        tracking.msclkid ||
+        tracking.ttclid ||
+        tracking.dclid ||
+        data.click_id ||
+        null,
       ip_address:
         tracking.ip ||
         tracking.ipAddress ||
+        tracking.ip_address ||
         data.ip ||
         data.ip_address ||
         null,

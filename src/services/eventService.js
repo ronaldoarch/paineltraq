@@ -68,8 +68,17 @@ class EventService {
         throw new Error('Falha ao encontrar/criar usuário');
       }
 
-      // 3. Gerar event_id para deduplicação
-      const eventId = generateDeterministicEventId(source, eventType, user.id, Math.floor(Date.now() / 60000));
+      // 3. Gerar event_id para deduplicação (prioriza transactionId / referência do gateway)
+      const pData = payload?.data || payload || {};
+      const dedupeKey =
+        pData.transactionId ||
+        pData.transaction_id ||
+        pData.depositReference ||
+        pData.deposit_reference ||
+        pData.pixEndToEndId ||
+        pData.onzTxid ||
+        Math.floor(Date.now() / 60000);
+      const eventId = generateDeterministicEventId(source, eventType, user.id, String(dedupeKey));
 
       // 4. Verificar se evento já existe (deduplicação)
       const isDuplicate = await this.checkDuplicate(eventId);
