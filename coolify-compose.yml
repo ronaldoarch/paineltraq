@@ -20,7 +20,7 @@ services:
       DB_NAME: ${DB_NAME:-bearbet_tracker}
       DB_USER: ${DB_USER:-bearbet}
       DB_PASSWORD: ${DB_PASSWORD}
-      REDIS_HOST: redis
+      REDIS_HOST: rd-bearbet
       REDIS_PORT: "6379"
       JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET nas variaveis de ambiente do Coolify}
       META_PIXEL_ID: ${META_PIXEL_ID:-}
@@ -103,7 +103,9 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - app-internal
+      app-internal:
+        aliases:
+          - rd-bearbet
 
 volumes:
   postgres_data_v5:
