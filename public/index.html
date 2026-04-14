@@ -876,6 +876,11 @@
           <div class="stat-value text-green" id="statRevenue">—</div>
           <div class="stat-sub" id="statRevenueSub"></div>
         </div>
+        <div class="stat-card" style="grid-column: span 2;">
+          <div class="stat-label"><span class="stat-dot dot-blue"></span> Pedidos HTTP (logs de webhook)</div>
+          <div class="stat-value" id="statWebhookHttp">—</div>
+          <div class="stat-sub" id="statWebhookHttpSub"></div>
+        </div>
       </div>
 
       <!-- Recent events table -->
@@ -1317,12 +1322,22 @@ async function loadOverview() {
     document.getElementById('statRegistrations').textContent = num(t.total_registrations);
     document.getElementById('statRegSub').textContent = `${num(t.total_initiates)} iniciaram checkout`;
     document.getElementById('statSent').textContent = num(t.sent_to_meta);
-    document.getElementById('statSentSub').textContent = `de ${num(t.total_events)} eventos totais`;
+    document.getElementById('statSentSub').textContent = `de ${num(t.total_events)} eventos na base (só tipos mapeados; duplicados não somam)`;
     document.getElementById('statErrors').textContent = num(t.errors);
     document.getElementById('statErrorSub').textContent = t.total_events > 0 ? `${((t.errors / t.total_events) * 100).toFixed(1)}% taxa de erro` : '';
     document.getElementById('statTotalUsers').textContent = num(data.totalUsers);
     document.getElementById('statTodayUsers').textContent = `${num(data.todayUsers)} novos hoje`;
     document.getElementById('statRevenue').textContent = `R$ ${money(t.purchase_value)}`;
+
+    const wh = data.webhooks;
+    if (wh && document.getElementById('statWebhookHttp')) {
+      document.getElementById('statWebhookHttp').textContent = num(wh.total);
+      const bySrc = (wh.bySource || [])
+        .map((r) => `${r.source}: ${num(r.total)}`)
+        .join(' · ');
+      document.getElementById('statWebhookHttpSub').textContent =
+        `${num(t.total_events)} viraram linhas em Eventos (restante: teste Meta, tipo ignorado, duplicado ou erro antes de gravar).${bySrc ? ` Por fonte: ${bySrc}.` : ''}`;
+    }
 
     // Recent events
     const events = await api('/api/events?limit=10');

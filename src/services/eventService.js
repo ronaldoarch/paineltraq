@@ -5,6 +5,40 @@ const metaService = require('./metaService');
 const { eventQueue } = require('../config/queue');
 const logger = require('../config/logger');
 
+/** URL real da página (CAPI website + event_source_url); webhooks do backoffice raramente trazem isto. */
+function extractEventSourceUrlFromPayload(rawPayload) {
+  if (!rawPayload || typeof rawPayload !== 'object') return null;
+  const d = rawPayload.data ?? rawPayload;
+  const t = d.tracking || d.meta || {};
+  const candidates = [
+    d.event_source_url,
+    d.page_url,
+    d.pageUrl,
+    d.landing_page,
+    d.landingPage,
+    d.url,
+    d.source_url,
+    d.sourceUrl,
+    d.referrer,
+    d.document_location,
+    d.documentLocation,
+    t.page_url,
+    t.pageUrl,
+    t.landing_page,
+    t.landingPage,
+    t.event_source_url,
+    t.source_url,
+    rawPayload.event_source_url,
+  ];
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const u = c.trim();
+      if (u.startsWith('http')) return u.slice(0, 2048);
+    }
+  }
+  return null;
+}
+
 class EventService {
   /**
    * Mapeia eventos internos para nomes do Meta
@@ -180,6 +214,11 @@ class EventService {
       throw new Error(`Usuário ${userId} não encontrado`);
     }
 
+    const eventRow = await query('SELECT raw_payload FROM events WHERE event_id = $1', [eventId]);
+    const rawPayload = eventRow.rows[0]?.raw_payload;
+    const sourceUrl = extractEventSourceUrlFromPayload(rawPayload);
+    const actionSource = sourceUrl ? 'website' : 'other';
+
     // Enviar para o Meta
     const result = await metaService.sendEvent(
       {
@@ -187,7 +226,8 @@ class EventService {
         event_id: eventId,
         value,
         currency: currency || 'BRL',
-        action_source: 'website',
+        action_source: actionSource,
+        source_url: sourceUrl || undefined,
       },
       user
     );
@@ -307,7 +347,7 @@ class EventService {
 
     const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-    const [totals, byType, byDay, recentErrors] = await Promise.all([
+    const [totals, byType, byDay, recentErrors, webhookTotal, webhookBySource] = await Promise.all([
       // Totais gerais
       query(
         `SELECT
@@ -362,6 +402,18 @@ class EventService {
          ORDER BY e.created_at DESC
          LIMIT 10`
       ),
+      // Mesmo filtro de datas que em `events`: cada POST ao /webhook/* entra aqui
+      query(
+        `SELECT COUNT(*)::int AS total FROM webhook_logs ${whereClause}`,
+        params
+      ),
+      query(
+        `SELECT source, COUNT(*)::int AS total
+         FROM webhook_logs ${whereClause}
+         GROUP BY source
+         ORDER BY total DESC`,
+        params
+      ),
     ]);
 
     return {
@@ -369,6 +421,10 @@ class EventService {
       byType: byType.rows,
       byDay: byDay.rows,
       recentErrors: recentErrors.rows,
+      webhooks: {
+        total: webhookTotal.rows[0]?.total ?? 0,
+        bySource: webhookBySource.rows,
+      },
     };
   }
 
