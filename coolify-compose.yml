@@ -44,12 +44,6 @@ services:
       SERVICE_FQDN_APP_3000: "${SERVICE_FQDN_APP_3000:-}"
     # Sem "ports" no host: no Coolify o Traefik fala com o container só pela rede Docker.
     # Publicar 3000:3000 no host costuma ser desnecessário e pode conflitar com outras stacks.
-    # Traefik só roteia para o container após o health check responder OK.
-    # Evita 504 durante o startup (migrations + conexão DB podem levar até 120s).
-    labels:
-      - "traefik.http.services.app.loadbalancer.healthcheck.path=/api/health/live"
-      - "traefik.http.services.app.loadbalancer.healthcheck.interval=10s"
-      - "traefik.http.services.app.loadbalancer.healthcheck.timeout=5s"
     expose:
       - "3000"
     depends_on:
