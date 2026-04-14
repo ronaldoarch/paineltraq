@@ -79,9 +79,15 @@ O Coolify grava dados em `/data/coolify/applications/.../`. Bind-mount de **arqu
 
 **Correção no repositório:** o serviço **nginx** passa a ser **build** a partir de `nginx/Dockerfile`, que copia `nginx.conf` **para dentro da imagem** — não há mais mount do arquivo no host.
 
-### Conflito nas portas **80/443** ou preferir SSL só no Coolify
+### `Bind for 0.0.0.0:80 failed: port is already allocated`
 
-Se o compose com **Nginx** ainda conflitar com o proxy do Coolify, use o arquivo **`coolify-compose.yml`**: só app + Postgres + Redis, **sem** Nginx/Certbot, com SSL e domínio configurados na UI do Coolify (recomendado para Coolify).
+No servidor do Coolify a **porta 80** (e muitas vezes a **443**) já é do **Traefik/proxy** do próprio Coolify. O `docker-compose.yml` usa por padrão **`8080→80`** e **`8443→443`** no host (`NGINX_HTTP_PORT` / `NGINX_HTTPS_PORT`), para não disputar com o Coolify.
+
+No painel do recurso, aponte o domínio / proxy HTTP para a porta publicada do Nginx (**8080** por padrão), a menos que você defina outra variável no ambiente.
+
+### Preferir sem Nginx no Coolify
+
+Use o arquivo **`coolify-compose.yml`**: só app + Postgres + Redis, **sem** Nginx/Certbot, com SSL só na UI do Coolify (recomendado se quiser evitar Nginx dentro do stack).
 
 ## Stack local original (Nginx + Certbot)
 

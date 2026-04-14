@@ -84,9 +84,11 @@ services:
     image: bearbet-nginx:local
     container_name: bearbet-nginx
     restart: always
+    # Padrão 8080/8443: no Coolify a porta 80 do host já é do Traefik ("port is already allocated").
+    # Na VPS com .env: NGINX_HTTP_PORT=80 e NGINX_HTTPS_PORT=443
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_PORT:-8080}:80"
+      - "${NGINX_HTTPS_PORT:-8443}:443"
     volumes:
       # Certificados e ACME (nginx.conf já está na imagem — não montar arquivo no host)
       - ./nginx/ssl:/etc/nginx/ssl:ro

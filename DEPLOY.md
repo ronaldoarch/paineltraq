@@ -98,7 +98,11 @@ DB_PASSWORD=COLOQUE_UMA_SENHA_FORTE_AQUI
 JWT_SECRET=COLOQUE_OUTRA_SENHA_DIFERENTE_AQUI
 META_PIXEL_ID=SEU_PIXEL_ID_DO_FACEBOOK
 META_ACCESS_TOKEN=SEU_TOKEN_DA_CAPI
+NGINX_HTTP_PORT=80
+NGINX_HTTPS_PORT=443
 ```
+
+As duas últimas linhas expõem o Nginx nas portas **80** e **443** da VPS (padrão do `docker-compose` no Coolify é **8080**/**8443** para não conflitar com o proxy do Coolify).
 
 Para salvar e sair do nano:
 1. Aperte `Ctrl + X`
