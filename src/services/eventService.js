@@ -74,8 +74,8 @@ class EventService {
     'payment_approved': 'Purchase',
     'purchase': 'Purchase',
 
-    // FTD (First Time Deposit) - também mapeia para Purchase
-    'ftd': 'Purchase',
+    // FTD (First Time Deposit) - evento próprio no Meta
+    'ftd': 'ftd',
     'first_deposit': 'Purchase',
 
     // Variantes comuns de gateways / Meta System
