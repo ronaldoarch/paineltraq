@@ -17,8 +17,8 @@ services:
       # Alias único para evitar colisão de DNS com containers postgres de deploys antigos na rede coolify
       DB_HOST: pg-bearbet
       DB_PORT: "5432"
-      DB_NAME: ${DB_NAME:-ByBetz}
-      DB_USER: ${DB_USER:-ByBetz}
+      DB_NAME: bybetz_tracker
+      DB_USER: bybetz
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: rd-bearbet
       REDIS_PORT: "6379"
@@ -69,20 +69,20 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-bearbet_tracker}
-      POSTGRES_USER: ${DB_USER:-bearbet}
+      POSTGRES_DB: bybetz_tracker
+      POSTGRES_USER: bybetz
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       # Aceita conexões sem verificar senha — resolve problema de substituição de
       # variável no Coolify. Seguro: postgres não tem porta exposta para fora.
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - postgres_data_v5:/var/lib/postgresql/data
+      - postgres_data_bybetz:/var/lib/postgresql/data
     networks:
       app-internal:
         aliases:
           - pg-bearbet
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bearbet} -d ${DB_NAME:-bearbet_tracker} -h 127.0.0.1"]
+      test: ["CMD-SHELL", "pg_isready -U bybetz -d bybetz_tracker -h 127.0.0.1"]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -105,7 +105,7 @@ services:
           - rd-bearbet
 
 volumes:
-  postgres_data_v5:
+  postgres_data_bybetz:
   redis_data:
 
 networks:
