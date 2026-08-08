@@ -51,16 +51,20 @@ bearbet-tracker/
 │   └── docker-entrypoint.sh  # Migrações + start (Docker / Coolify)
 ├── DEPLOY.md            # Guia de deploy (VPS manual)
 ├── COOLIFY.md           # Guia de deploy no Coolify
+├── POSTBACKS.md         # Postbacks da plataforma (URLs por evento)
 └── .env.example         # Template de configuração
 ```
 
 ## Eventos Suportados
 
-| Evento Interno               | Nome Meta              |
-|-------------------------------|------------------------|
-| user.register                 | CompleteRegistration    |
-| payment.deposit.started       | InitiateCheckout       |
-| payment.deposit.completed     | Purchase               |
+| Evento Interno                | Nome Meta                       |
+|-------------------------------|---------------------------------|
+| user.register                 | CompleteRegistration            |
+| payment.deposit.started       | InitiateCheckout                |
+| payment.deposit.completed     | Purchase                        |
+| payment.deposit.first         | FirstDeposit (custom, sem value) |
+| payment.withdrawal.requested  | WithdrawalRequested (custom)    |
+| payment.withdrawal.paid       | WithdrawalPaid (custom)         |
 
 ## Endpoints
 
@@ -68,6 +72,15 @@ bearbet-tracker/
 - `POST /webhook/xgate` — Eventos da processadora de pagamento
 - `POST /webhook/cassino` — Eventos do backoffice do cassino
 - `POST /webhook/fluxlab` — Eventos do FluxLab
+
+### Postbacks da plataforma (um por evento) — [POSTBACKS.md](./POSTBACKS.md)
+- `POST /postback/cadastro` — Cadastro de Usuários
+- `POST /postback/deposito-gerado` — Depósito Gerado
+- `POST /postback/primeiro-deposito-pago` — Primeiro Depósito Pago
+- `POST /postback/deposito-pago` — Depósito Pago
+- `POST /postback/saque-solicitado` — Saque Solicitado
+- `POST /postback/saque-pago` — Saque Pago
+- `GET /postback` — Lista as URLs a colar no painel da plataforma
 
 ### API (autenticação JWT)
 - `POST /api/auth/login` — Login

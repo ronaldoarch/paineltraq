@@ -945,6 +945,9 @@
           <option value="Purchase">Purchase (Depósito)</option>
           <option value="CompleteRegistration">Registration</option>
           <option value="InitiateCheckout">InitiateCheckout</option>
+          <option value="FirstDeposit">FirstDeposit (FTD)</option>
+          <option value="WithdrawalRequested">Saque Solicitado</option>
+          <option value="WithdrawalPaid">Saque Pago</option>
         </select>
         <select id="filterStatus" class="filter-select" onchange="loadEvents()">
           <option value="">Todos os status</option>
@@ -957,6 +960,7 @@
           <option value="xgate">XGate</option>
           <option value="cassino">Cassino</option>
           <option value="fluxlab">FluxLab</option>
+          <option value="postback">Postback</option>
         </select>
       </div>
 
@@ -1038,6 +1042,7 @@
           <option value="xgate">XGate</option>
           <option value="cassino">Cassino</option>
           <option value="fluxlab">FluxLab</option>
+          <option value="postback">Postback</option>
         </select>
       </div>
 
@@ -1789,7 +1794,14 @@ function statusBadge(status) {
 }
 
 function eventBadge(name) {
-  const map = { Purchase: 'badge-success', CompleteRegistration: 'badge-info', InitiateCheckout: 'badge-warning' };
+  const map = {
+    Purchase: 'badge-success',
+    FirstDeposit: 'badge-success',
+    CompleteRegistration: 'badge-info',
+    InitiateCheckout: 'badge-warning',
+    WithdrawalRequested: 'badge-muted',
+    WithdrawalPaid: 'badge-muted',
+  };
   return map[name] || 'badge-muted';
 }
 

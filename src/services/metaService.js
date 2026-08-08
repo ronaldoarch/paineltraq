@@ -133,6 +133,10 @@ class MetaService {
       ip_address: row.ip_address,
       user_agent: row.user_agent,
       external_id: row.external_id,
+      cpf: row.cpf,
+      cpf_hash: row.cpf_hash,
+      gender: row.gender,
+      birthday: row.birthday,
     };
   }
 
@@ -178,6 +182,14 @@ class MetaService {
       user_data.country = [hashSHA256(u.country.toLowerCase())];
     }
 
+    // Gênero 'm'/'f' e nascimento YYYYMMDD (hashados) — só chegam via postback de cadastro
+    if (u.gender) {
+      user_data.ge = [hashSHA256(u.gender)];
+    }
+    if (u.birthday) {
+      user_data.db = [hashSHA256(u.birthday)];
+    }
+
     // Facebook Click ID (NÃO hashear)
     if (u.fbc) {
       user_data.fbc = u.fbc;
@@ -196,9 +208,19 @@ class MetaService {
       user_data.client_user_agent = u.user_agent;
     }
 
-    // External ID (hashado)
+    // External ID (hashado). A CAPI aceita vários identificadores estáveis —
+    // o CPF entra como external_id adicional para jogadores vindos de postback.
+    const externalIds = [];
     if (u.external_id) {
-      user_data.external_id = [hashSHA256(String(u.external_id))];
+      externalIds.push(hashSHA256(String(u.external_id)));
+    }
+    if (u.cpf_hash) {
+      externalIds.push(u.cpf_hash);
+    } else if (u.cpf) {
+      externalIds.push(hashSHA256(String(u.cpf)));
+    }
+    if (externalIds.length > 0) {
+      user_data.external_id = [...new Set(externalIds)];
     }
 
     // Website na CAPI exige event_source_url; webhooks do cassino raramente têm URL → usar "other".

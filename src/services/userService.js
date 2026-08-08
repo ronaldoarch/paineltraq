@@ -1,5 +1,12 @@
 const { query, transaction } = require('../config/database');
-const { hashSHA256, normalizeEmail, normalizePhone } = require('../utils/helpers');
+const {
+  hashSHA256,
+  normalizeEmail,
+  normalizePhone,
+  normalizeCpf,
+  normalizeGender,
+  normalizeBirthday,
+} = require('../utils/helpers');
 const logger = require('../config/logger');
 
 class UserService {
@@ -10,9 +17,10 @@ class UserService {
    * 1. click_id (mais confiável - vem do Meta)
    * 2. fbc (Facebook Click Cookie)
    * 3. external_id (ID do cassino)
-   * 4. email (fallback principal)
-   * 5. phone (último fallback)
-   * 
+   * 4. cpf (identificador único do jogador — postbacks da plataforma)
+   * 5. email (fallback principal)
+   * 6. phone (último fallback)
+   *
    * Retorna: { user, matchedBy, isNew }
    */
   async findOrCreate(data) {
@@ -22,6 +30,9 @@ class UserService {
       external_id, utm_source, utm_medium, utm_campaign,
       utm_content, utm_term, source
     } = data;
+    const cpf = normalizeCpf(data.cpf);
+    const gender = normalizeGender(data.gender);
+    const birthday = normalizeBirthday(data.birthday);
 
     let user = null;
     let matchedBy = null;
@@ -44,14 +55,20 @@ class UserService {
       if (user) matchedBy = 'external_id';
     }
 
-    // 4. Tentar match por email
+    // 4. Tentar match por CPF
+    if (!user && cpf) {
+      user = await this.findByField('cpf', cpf);
+      if (user) matchedBy = 'cpf';
+    }
+
+    // 5. Tentar match por email
     if (!user && email) {
       const normalizedEmail = normalizeEmail(email);
       user = await this.findByField('email', normalizedEmail);
       if (user) matchedBy = 'email';
     }
 
-    // 5. Tentar match por telefone
+    // 6. Tentar match por telefone
     if (!user && phone) {
       const normalizedPhone = normalizePhone(phone);
       user = await this.findByField('phone', normalizedPhone);
@@ -79,8 +96,8 @@ class UserService {
         first_name, last_name, country,
         fbc, fbp, click_id, ip_address, user_agent,
         utm_source, utm_medium, utm_campaign, utm_content, utm_term,
-        source
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+        source, cpf, cpf_hash, gender, birthday
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
       RETURNING *`,
       [
         external_id,
@@ -91,7 +108,8 @@ class UserService {
         first_name, last_name, country || 'BR',
         fbc, fbp, click_id, ip_address, user_agent,
         utm_source, utm_medium, utm_campaign, utm_content, utm_term,
-        source || 'unknown'
+        source || 'unknown',
+        cpf, cpf ? hashSHA256(cpf) : null, gender, birthday
       ]
     );
 
@@ -108,7 +126,7 @@ class UserService {
    * Busca usuário por campo específico
    */
   async findByField(field, value) {
-    const allowedFields = ['email', 'phone', 'click_id', 'fbc', 'external_id', 'id'];
+    const allowedFields = ['email', 'phone', 'click_id', 'fbc', 'external_id', 'cpf', 'id'];
     if (!allowedFields.includes(field)) {
       throw new Error(`Campo não permitido para busca: ${field}`);
     }
@@ -139,6 +157,9 @@ class UserService {
       last_name: data.last_name,
       phone: data.phone ? normalizePhone(data.phone) : null,
       email: data.email ? normalizeEmail(data.email) : null,
+      cpf: normalizeCpf(data.cpf),
+      gender: normalizeGender(data.gender),
+      birthday: normalizeBirthday(data.birthday),
     };
 
     for (const [field, value] of Object.entries(fieldsToEnrich)) {
@@ -161,6 +182,12 @@ class UserService {
       const normalized = normalizePhone(data.phone);
       updates.push(`phone_hash = COALESCE(NULLIF(phone_hash, ''), $${paramIndex})`);
       values.push(hashSHA256(normalized));
+      paramIndex++;
+    }
+    const normalizedCpf = normalizeCpf(data.cpf);
+    if (normalizedCpf) {
+      updates.push(`cpf_hash = COALESCE(NULLIF(cpf_hash, ''), $${paramIndex})`);
+      values.push(hashSHA256(normalizedCpf));
       paramIndex++;
     }
 

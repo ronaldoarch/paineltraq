@@ -36,6 +36,52 @@ function normalizePhone(phone) {
 }
 
 /**
+ * Normaliza CPF para apenas dígitos (11 caracteres)
+ * Ex: 123.456.789-00 → 12345678900
+ */
+function normalizeCpf(cpf) {
+  if (!cpf) return null;
+  const cleaned = String(cpf).replace(/\D/g, '');
+  return cleaned.length === 11 ? cleaned : null;
+}
+
+/**
+ * Normaliza gênero para o formato do Meta CAPI: 'm' ou 'f'
+ * Aceita variantes PT/EN (masculino, feminino, male, female, m, f, 1, 2)
+ */
+function normalizeGender(gender) {
+  if (!gender) return null;
+  const g = String(gender).toLowerCase().trim();
+  if (!g) return null;
+  if (['m', 'masculino', 'male', 'homem', 'h', '1'].includes(g)) return 'm';
+  if (['f', 'feminino', 'female', 'mulher', '2'].includes(g)) return 'f';
+  return null;
+}
+
+/**
+ * Normaliza data de nascimento para YYYYMMDD (formato do Meta CAPI `db`)
+ * Aceita DD/MM/YYYY (padrão BR), YYYY-MM-DD e ISO 8601
+ */
+function normalizeBirthday(birthday) {
+  if (!birthday) return null;
+  const s = String(birthday).trim();
+  if (!s) return null;
+
+  // DD/MM/YYYY ou DD-MM-YYYY
+  const br = s.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
+  if (br) return `${br[3]}${br[2]}${br[1]}`;
+
+  // YYYY-MM-DD, YYYY/MM/DD ou ISO 8601 (2024-01-31T00:00:00Z)
+  const iso = s.match(/^(\d{4})[/-](\d{2})[/-](\d{2})/);
+  if (iso) return `${iso[1]}${iso[2]}${iso[3]}`;
+
+  // Já em YYYYMMDD
+  if (/^\d{8}$/.test(s)) return s;
+
+  return null;
+}
+
+/**
  * Gera event_id único para deduplicação
  * Formato: {source}_{type}_{uuid}
  */
@@ -141,6 +187,9 @@ module.exports = {
   hashSHA256,
   normalizeEmail,
   normalizePhone,
+  normalizeCpf,
+  normalizeGender,
+  normalizeBirthday,
   generateEventId,
   generateDeterministicEventId,
   extractUTMs,

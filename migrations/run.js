@@ -40,6 +40,14 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_users_fbc ON users(fbc)`,
   `CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at)`,
 
+  // Dados extra do cadastro via postback (CPF, gênero, nascimento)
+  // Melhoram o Advanced Matching da CAPI: ge, db e external_id adicional
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS cpf VARCHAR(11)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS cpf_hash VARCHAR(64)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(1)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS birthday VARCHAR(8)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_cpf ON users(cpf)`,
+
   // =============================================
   // TABELA: events
   // Registra todos os eventos recebidos

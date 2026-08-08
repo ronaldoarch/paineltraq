@@ -12,6 +12,7 @@ const apiRoutes = require('./routes/api');
 const webhookXgate = require('./routes/webhookXgate');
 const webhookCassino = require('./routes/webhookCassino');
 const webhookFluxlab = require('./routes/webhookFluxlab');
+const postbackRoutes = require('./routes/postback');
 
 // Importar worker da fila
 const { startWorker } = require('./jobs/eventWorker');
@@ -95,6 +96,9 @@ app.use('/webhook/xgate', webhookLimiter, webhookXgate);
 app.use('/webhook/cassino', webhookLimiter, webhookCassino);
 app.use('/webhook/fluxlab', webhookLimiter, webhookFluxlab);
 
+// Postbacks da plataforma (um endpoint por evento — payload plano, sem campo de tipo)
+app.use('/postback', webhookLimiter, postbackRoutes);
+
 // Aliases (compatibilidade)
 app.use('/api/xgate/webhook', webhookLimiter, webhookXgate);
 
@@ -176,6 +180,7 @@ async function start() {
       logger.info(`[Server] 🔗 Webhook XGate: http://localhost:${PORT}/webhook/xgate`);
       logger.info(`[Server] 🔗 Webhook Cassino: http://localhost:${PORT}/webhook/cassino`);
       logger.info(`[Server] 🔗 Webhook FluxLab: http://localhost:${PORT}/webhook/fluxlab`);
+      logger.info(`[Server] 🔗 Postbacks da plataforma: http://localhost:${PORT}/postback`);
       logger.info(`[Server] 💚 Health Check: http://localhost:${PORT}/api/health`);
     });
     // Acima do read_timeout típico do Traefik/Nginx (60–120s) para evitar 502/504 em /api/stats ou webhooks lentos

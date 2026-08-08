@@ -49,6 +49,13 @@ function fingerprintWebhookPayload(payload) {
   }
 }
 
+/**
+ * Eventos custom que servem só para segmentação: vão à CAPI sem value/currency
+ * para não duplicar a receita já contada no Purchase correspondente.
+ * O valor real continua guardado em `events.value` e visível no painel.
+ */
+const VALUELESS_META_EVENTS = new Set(['FirstDeposit']);
+
 class EventService {
   /**
    * Mapeia eventos internos para nomes do Meta
@@ -77,6 +84,14 @@ class EventService {
     // FTD (First Time Deposit) - também mapeia para Purchase
     'ftd': 'Purchase',
     'first_deposit': 'Purchase',
+
+    // Primeiro depósito via postback: evento custom de segmentação, enviado
+    // SEM value — a receita é contada no Purchase de "Depósito Pago".
+    'payment.deposit.first': 'FirstDeposit',
+
+    // Saques: eventos custom (não são conversão de compra, não entram no ROAS)
+    'payment.withdrawal.requested': 'WithdrawalRequested',
+    'payment.withdrawal.paid': 'WithdrawalPaid',
 
     // Variantes comuns de gateways / Meta System
     deposit: 'Purchase',
@@ -143,7 +158,15 @@ class EventService {
    * 5. Registrar evento
    * 6. Enfileirar envio ao Meta
    */
-  async processEvent({ eventType, source, payload, userData = {}, value = 0, currency = 'BRL' }) {
+  async processEvent({
+    eventType,
+    source,
+    payload,
+    userData = {},
+    value = 0,
+    currency = 'BRL',
+    dedupeKey: explicitDedupeKey = null,
+  }) {
     try {
       // 1. Mapear evento para nome do Meta (mesma lógica que isCassinoEventAccepted / compact)
       const metaEventName = EventService.resolveMetaEventName(eventType);
@@ -165,9 +188,11 @@ class EventService {
         throw new Error('Falha ao encontrar/criar usuário');
       }
 
-      // 3. Gerar event_id para deduplicação (prioriza transactionId / referência do gateway)
+      // 3. Gerar event_id para deduplicação (prioriza chave explícita da rota,
+      //    depois transactionId / referência do gateway)
       const pData = payload?.data || payload || {};
       const dedupeKey =
+        explicitDedupeKey ||
         pData.transactionId ||
         pData.transaction_id ||
         pData.depositReference ||
@@ -183,6 +208,8 @@ class EventService {
         pData.deposit_id ||
         pData.invoice_id ||
         pData.invoiceId ||
+        pData.pix_code ||
+        pData.pixCode ||
         payload?.metadata?.requestId ||
         payload?.requestId ||
         fingerprintWebhookPayload(payload);
@@ -315,13 +342,15 @@ class EventService {
     const sourceUrl = extractEventSourceUrlFromPayload(rawPayload);
     const actionSource = sourceUrl ? 'website' : 'other';
 
+    const valueless = VALUELESS_META_EVENTS.has(metaEventName);
+
     // Enviar para o Meta
     const result = await metaService.sendEvent(
       {
         event_name: metaEventName,
         event_id: eventId,
-        value,
-        currency: currency || 'BRL',
+        value: valueless ? 0 : value,
+        currency: valueless ? undefined : currency || 'BRL',
         action_source: actionSource,
         source_url: sourceUrl || undefined,
       },
@@ -374,7 +403,9 @@ class EventService {
     let paramIndex = 1;
 
     if (eventType) {
-      conditions.push(`e.event_type = $${paramIndex++}`);
+      // O filtro do painel envia o nome Meta (Purchase); a API também aceita o tipo interno
+      conditions.push(`(e.event_name = $${paramIndex} OR e.event_type = $${paramIndex})`);
+      paramIndex++;
       params.push(eventType);
     }
     if (status) {
